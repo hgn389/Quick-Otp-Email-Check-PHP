@@ -26,7 +26,8 @@ def main():
         (private / 'src/Core.php').write_text('<?php broken syntax {')
         (public / 'index.php').write_text("<?php define('QUICKOTP_RUNTIME', true); require __DIR__ . '/quickotp-private/bootstrap.php';")
         storage = private / 'storage'
-        storage.mkdir(mode=0o755)
+        # Start read-only so the readiness request cannot create a reusable lock.
+        storage.mkdir(mode=0o555)
         base = 'http://127.0.0.1:' + str(port())
         def drop_privileges():
             if os.geteuid() == 0:

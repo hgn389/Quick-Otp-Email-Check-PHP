@@ -91,7 +91,7 @@ def exercise_update(site, client, anonymous, admin_password, project):
     assert client.request('GET', '/api/v1/history/page')[1]['total'] == initial_history
     assert (public / 'app.js').read_bytes() != original_assets
     backup = private / result['recovery_directory']
-    decrypted = subprocess.run(['php', '-r', 'require $argv[1]; $data=\QuickOtp\Backup::open(file_get_contents($argv[2]),$argv[3]); echo json_encode($data);', str(private / 'bootstrap.php'), str(backup / 'database.qotp'), admin_password], capture_output=True, text=True, check=True)
+    decrypted = subprocess.run(['php', '-r', r'require $argv[1]; $data=\QuickOtp\Backup::open(file_get_contents($argv[2]),$argv[3]); echo json_encode($data);', str(private / 'bootstrap.php'), str(backup / 'database.qotp'), admin_password], capture_output=True, text=True, check=True)
     snapshot = json.loads(decrypted.stdout)
     assert len(snapshot['tables']['generated_emails']) == initial_history
     # Simulate an interrupted installation: the gate must stop before loading even broken classes.
