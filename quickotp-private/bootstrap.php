@@ -9,23 +9,40 @@ if (!defined('QUICKOTP_RUNTIME')) {
     define('QUICKOTP_RUNTIME', true);
 }
 
+function quickotpBootstrapUnavailable(string $message, string $code, bool $retry = false): never
+{
+    http_response_code(503);
+    if ($retry) {
+        header('Retry-After: 2');
+    }
+    header('Cache-Control: no-store');
+    header('X-LiteSpeed-Cache-Control: no-cache');
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode(['error' => $message, 'code' => $code], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    exit;
+}
+
 // Lock before loading application classes so requests cannot mix two source versions.
 if (PHP_SAPI !== 'cli') {
     $storage = __DIR__ . '/storage';
+    $lockPath = $storage . '/maintenance.lock';
+    if (is_link($storage) || is_link($lockPath)) {
+        quickotpBootstrapUnavailable('Thư mục storage hoặc file khóa không được dùng symlink. Kiểm tra cấu trúc bộ cài.', 'invalid_storage_path');
+    }
     if (!is_dir($storage)) {
         @mkdir($storage, 0700, true);
     }
-    $requestLock = is_link($storage) || is_link($storage . '/maintenance.lock') ? false : @fopen($storage . '/maintenance.lock', 'c+b');
-    if ($requestLock === false || !flock($requestLock, LOCK_SH | LOCK_NB) || is_file($storage . '/update-pending.json')) {
-        http_response_code(503);
-        header('Retry-After: 2');
-        header('Cache-Control: no-store');
-        header('X-LiteSpeed-Cache-Control: no-cache');
-        header('Content-Type: application/json; charset=utf-8');
-        echo json_encode(['error' => 'Website đang bảo trì/cập nhật. Vui lòng thử lại sau.'], JSON_UNESCAPED_UNICODE);
-        exit;
+    $requestLock = is_dir($storage) ? @fopen($lockPath, 'c+b') : false;
+    if ($requestLock === false) {
+        quickotpBootstrapUnavailable('PHP không mở/tạo được quickotp-private/storage/maintenance.lock. Kiểm tra chủ sở hữu, quyền ghi và dung lượng đĩa. Nếu vừa cài mới, mở File Manager của website trong CyberPanel và bấm Fix Permissions, rồi tải lại trang.', 'storage_unavailable');
     }
-    @chmod($storage . '/maintenance.lock', 0600);
+    if (!flock($requestLock, LOCK_SH | LOCK_NB)) {
+        quickotpBootstrapUnavailable('Website đang cập nhật. Vui lòng thử lại sau.', 'maintenance_busy', true);
+    }
+    if (is_file($storage . '/update-pending.json') || is_link($storage . '/update-pending.json')) {
+        quickotpBootstrapUnavailable('Lần cập nhật trước chưa hoàn tất. Cần phục hồi mã nguồn theo hướng dẫn trong CYBERPANEL.md trước khi mở lại website.', 'update_recovery_required');
+    }
+    @chmod($lockPath, 0600);
     $GLOBALS['quickotp_request_lock'] = $requestLock;
 }
 

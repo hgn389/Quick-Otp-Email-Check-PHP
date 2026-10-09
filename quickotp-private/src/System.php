@@ -7,7 +7,7 @@ use RuntimeException;
 
 final class System
 {
-    public const VERSION = '1.0.0-beta_1';
+    public const VERSION = '1.0.0-beta-2';
     public const REPOSITORY = 'hgn389/Quick-Otp-Email-Check-PHP';
 
     public function __construct(private readonly Database $db, private readonly string $directory)
@@ -22,7 +22,7 @@ final class System
 
     public static function validVersion(string $version): bool
     {
-        return preg_match('/^\d+\.\d+\.\d+(?:-beta_[1-9]\d*)?$/D', $version) === 1;
+        return preg_match('/^\d+\.\d+\.\d+(?:-beta[-_][1-9]\d*)?$/D', $version) === 1;
     }
 
     public static function newer(string $latest, string $current): bool
@@ -33,13 +33,13 @@ final class System
     public static function release(array $releases, ?string $current = null): ?array
     {
         $latest = null;
-        $allowBeta = str_contains($current ?? self::VERSION, '-beta_');
+        $allowBeta = str_contains($current ?? self::VERSION, '-beta');
         foreach ($releases as $release) {
-            if (($release['draft'] ?? true) || !preg_match('/^v(\d+\.\d+\.\d+(?:-beta_[1-9]\d*)?)$/D', $release['tag_name'] ?? '', $match)) {
+            if (($release['draft'] ?? true) || !preg_match('/^v(\d+\.\d+\.\d+(?:-beta[-_][1-9]\d*)?)$/D', $release['tag_name'] ?? '', $match)) {
                 continue;
             }
             $version = $match[1];
-            $beta = str_contains($version, '-beta_');
+            $beta = str_contains($version, '-beta');
             if (($beta && (!$allowBeta || ($release['prerelease'] ?? false) !== true))
                 || (!$beta && ($release['prerelease'] ?? true))) {
                 continue;

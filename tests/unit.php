@@ -199,4 +199,18 @@ $betaRelease['prerelease'] = false;
 check(System::release([$betaRelease], '1.0.0-beta_1') === null, 'Beta tag must be marked as a prerelease');
 $release['assets'][0]['browser_download_url'] = str_replace(System::REPOSITORY, 'hgn389/Quick-Otp-Email-Check', $release['assets'][0]['browser_download_url']);
 check(System::release([$release]) === null, 'Assets from old repository rejected');
+
+check(System::newer('1.0.0-beta-2', '1.0.0-beta_1'), 'Hyphen beta accepts legacy underscore version');
+check(System::newer('1.0.0-beta-10', '1.0.0-beta-2'), 'Hyphen beta versions compare numerically');
+check(!System::newer('1.0.0-beta_2', '1.0.0-beta-2'), 'Equivalent beta spellings do not trigger updates');
+foreach (['1.0.0-beta-0', '1.0.0-beta-01', '1.0.0-beta-2/../'] as $invalidVersion) {
+    check(!System::validVersion($invalidVersion), 'Invalid hyphen beta is rejected');
+}
+check(!\QuickOtp\UpdateRecovery::allowed('quickotp-private/install-password.php'), 'Updates cannot replace the installation secret');
+check(\QuickOtp\UpdateRecovery::allowed('quickotp-private/install-password.example.php'), 'Updates can include the empty installation template');
+$hyphenRelease = json_decode(str_replace('beta_2', 'beta-2', json_encode($betaRelease)), true);
+$hyphenRelease['prerelease'] = true;
+check(System::release([$hyphenRelease], '1.0.0-beta_1')['number'] === '1.0.0-beta-2', 'Current parser discovers hyphen releases from legacy version identifiers');
+check(System::release([$hyphenRelease], '1.0.0') === null, 'Stable clients still skip hyphen beta releases');
+
 echo "PASS: $checks PHP crypto, validation, generator, MIME, IMAP and update checks.\n";

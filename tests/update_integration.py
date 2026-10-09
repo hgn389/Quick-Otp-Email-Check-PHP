@@ -18,7 +18,7 @@ def exercise_update(site, client, anonymous, admin_password, project):
     initial_history = client.request('GET', '/api/v1/history/page')[1]['total']
     assets = private / 'storage/test-update-assets'
     assets.mkdir(mode=0o700)
-    version = '1.0.0-beta_2'
+    version = '1.0.0-beta-3'
     package_name = f'Quick-Otp-Email-Check-PHP_v{version}'
     payload = {}
     for directory in ['public_html', 'quickotp-private/src', 'quickotp-private/views', 'quickotp-private/vendor']:
@@ -84,15 +84,16 @@ def exercise_update(site, client, anonymous, admin_password, project):
             assert anonymous.request('GET', '/health/ready')[0] == expected
             (assets / (phase + '-continue')).touch()
         code, result, _ = job.result()
-    assert code == 200 and result['version'] == 'v1.0.0-beta_2-php', result
-    assert client.request('GET', '/api/v1/system/status')[1]['version'] == 'v1.0.0-beta_2-php'
+    assert code == 200 and result['version'] == 'v1.0.0-beta-3-php', result
+    assert client.request('GET', '/api/v1/system/status')[1]['version'] == 'v1.0.0-beta-3-php'
     assert anonymous.request('GET', '/health/ready')[0] == 200
     assert (private / 'config.php').read_bytes() == original_config
     assert client.request('GET', '/api/v1/history/page')[1]['total'] == initial_history
     assert (public / 'app.js').read_bytes() != original_assets
     backup = private / result['recovery_directory']
-    code, inspected, _ = client.request('POST', '/api/v1/backups/inspect', upload=({'current_password': admin_password, 'backup_password': admin_password}, (backup / 'database.qotp').read_bytes()))
-    assert code == 200
+    decrypted = subprocess.run(['php', '-r', 'require $argv[1]; $data=\QuickOtp\Backup::open(file_get_contents($argv[2]),$argv[3]); echo json_encode($data);', str(private / 'bootstrap.php'), str(backup / 'database.qotp'), admin_password], capture_output=True, text=True, check=True)
+    snapshot = json.loads(decrypted.stdout)
+    assert len(snapshot['tables']['generated_emails']) == initial_history
     # Simulate an interrupted installation: the gate must stop before loading even broken classes.
     (private / 'src/App.php').write_text('<?php broken syntax {')
     (private / 'storage/update-pending.json').write_text(json.dumps({'backup': result['recovery_directory']}))

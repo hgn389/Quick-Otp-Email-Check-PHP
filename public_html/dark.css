@@ -6,7 +6,7 @@ body.dark .domain-wrap input,body.dark .email-input-wrap input{color:#e2eaf6}
 body.dark .nav-item.active{background:#1c2945;color:#b3c2ff}
 body.dark .generated-box{background:#121b2e;border-color:#33456c}
 body.dark .profile,body.dark .watch-status,body.dark .demo-note,body.dark .recent-item{border-color:var(--line)}
-body.dark .breadcrumbs strong,body.dark .watch-status strong,body.dark .recent-item,body.dark .empty-list strong,body.dark .update-state{color:#c5cfdf}
+body.dark .watch-status strong,body.dark .recent-item,body.dark .empty-list strong,body.dark .update-state{color:#c5cfdf}
 body.dark .empty-symbol,body.dark .status-orb{background:#1a2332;color:#bac6d8}
 body.dark .notice,body.dark .settings-note{background:#241f16}
 body.dark .notice p,body.dark .settings-note p{color:#d4bd94}

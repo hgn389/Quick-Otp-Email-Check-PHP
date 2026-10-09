@@ -2,9 +2,21 @@
 declare(strict_types=1);
 
 define('QUICKOTP_RUNTIME', true);
-$bootstrap = is_file(__DIR__ . '/quickotp-private/bootstrap.php')
-    ? __DIR__ . '/quickotp-private/bootstrap.php'
-    : dirname(__DIR__) . '/quickotp-private/bootstrap.php';
+$siblingBootstrap = dirname(__DIR__) . '/quickotp-private/bootstrap.php';
+$nestedBootstrap = __DIR__ . '/quickotp-private/bootstrap.php';
+$siblingAvailable = @is_file($siblingBootstrap);
+$nestedAvailable = @is_file($nestedBootstrap);
+$duplicatePrivate = $siblingAvailable && $nestedAvailable;
+$bootstrap = $siblingAvailable ? $siblingBootstrap : $nestedBootstrap;
+if ($duplicatePrivate || (!$siblingAvailable && !$nestedAvailable) || !@is_readable($bootstrap)) {
+    http_response_code(503);
+    header('Content-Type: text/plain; charset=utf-8');
+    header('Cache-Control: no-store');
+    header('X-LiteSpeed-Cache-Control: no-cache');
+    exit($duplicatePrivate
+        ? 'Có hai thư mục quickotp-private. Dừng triển khai và giữ đúng bản chứa config.php cùng storage hiện tại theo hướng dẫn chuyển thư mục trong README.'
+        : 'Không đọc được quickotp-private. Giải nén bộ cài vào thư mục gốc website để public_html và quickotp-private nằm ngang hàng; kiểm tra quyền PHP và open_basedir.');
+}
 require_once $bootstrap;
 
 \QuickOtp\Http::headers();

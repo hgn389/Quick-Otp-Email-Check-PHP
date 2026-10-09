@@ -13,7 +13,6 @@ final class App
     private readonly Auth $auth;
     private readonly Settings $settings;
     private readonly Secrets $secrets;
-    private readonly Backup $backup;
     private readonly System $system;
     private $maintenance;
 
@@ -25,20 +24,18 @@ final class App
         $this->auth = new Auth($this->db, $config['dummy_password_hash']);
         $this->settings = new Settings($this->db, $this->secrets);
         $storage = $directory . '/storage';
-        if (!is_dir($storage . '/backups') && !mkdir($storage . '/backups', 0700, true) && !is_dir($storage . '/backups')) {
-            throw new \RuntimeException('Cannot initialize backup directory');
-        }
-        $this->backup = new Backup($this->db, $this->secrets, $storage . '/backups', 'v' . System::VERSION . '-php');
         $this->system = new System($this->db, $storage);
     }
 
     public function run(string $path): never
     {
-        $backupAction = str_starts_with($path, '/api/v1/backups');
+        if ($path === '/backup.html' || $path === '/backup.js' || $path === '/api/v1/backups' || str_starts_with($path, '/api/v1/backups/')) {
+            throw new HttpError(404, 'Không tìm thấy trang.');
+        }
         $this->maintenance = $GLOBALS['quickotp_request_lock'] ?? fopen($this->directory . '/storage/maintenance.lock', 'c+b');
-        if ($this->maintenance === false || !flock($this->maintenance, ($backupAction ? LOCK_EX : LOCK_SH) | LOCK_NB)) {
+        if ($this->maintenance === false || !flock($this->maintenance, LOCK_SH | LOCK_NB)) {
             header('Retry-After: 2');
-            throw new HttpError(503, 'Đang xử lý backup/restore hoặc cập nhật. Vui lòng thử lại.');
+            throw new HttpError(503, 'Website đang cập nhật. Vui lòng thử lại.');
         }
         if ($path === '/health/live' || $path === '/health/ready') {
             Http::method('GET');
@@ -151,47 +148,14 @@ final class App
                     $this->auth->requireCsrf($current);
                     $this->admin($current);
                     $this->auth->verifyCurrent($current, $password);
-                    return $this->backup->make($password);
+                    return (new Backup($this->db, $this->secrets, 'v' . System::VERSION . '-php'))->make($password);
                 }));
-            case '/api/v1/backups':
-                Http::method('GET');
-                $this->admin($session);
-                Http::json(['version' => 'v' . System::VERSION . '-php', 'max_file_size' => Backup::MAX_FILE, 'recovery_files' => $this->backup->recoveryFiles()]);
-            case '/api/v1/backups/export':
-                Http::method('POST');
-                $this->admin($session);
-                $input = Http::body();
-                $this->auth->verifyCurrent($session, Validation::text($input, 'current_password', 72));
-                Http::binary('quickotp-php-' . gmdate('Ymd\THis\Z') . '.qotp', $this->backup->make(Validation::text($input, 'backup_password', 256)));
-            case '/api/v1/backups/recovery':
-                Http::method('POST');
-                $this->admin($session);
-                $input = Http::body();
-                $this->auth->verifyCurrent($session, Validation::text($input, 'current_password', 72));
-                $name = Validation::text($input, 'name', 128);
-                Http::binary($name, $this->backup->downloadRecovery($name));
-            case '/api/v1/backups/inspect':
-            case '/api/v1/backups/restore':
-                Http::method('POST');
-                $this->admin($session);
-                $this->auth->verifyCurrent($session, Validation::text($_POST, 'current_password', 72));
-                [$manifest, $password] = $this->uploadBackup();
-                if ($path === '/api/v1/backups/inspect') {
-                    Http::json($this->backup->summary($manifest));
-                }
-                if (($_POST['confirmation'] ?? '') !== 'RESTORE') {
-                    throw new HttpError(400, 'Xác nhận trước khi khôi phục.');
-                }
-                $name = $this->backup->restore($manifest, $password);
-                $this->auth->clearCookie();
-                Http::json(['status' => 'restored', 'recovery_file' => $name]);
             case '/':
             case '/index.php':
             case '/index.html':
                 $this->page('index.html');
             case '/quick-otp.html':
             case '/settings.html':
-            case '/backup.html':
             case '/system.html':
             case '/change-password.html':
                 $this->page(substr($path, 1));
@@ -213,7 +177,7 @@ final class App
     private function admin(array $session): void
     {
         if (strtolower($session['username']) !== 'admin') {
-            throw new HttpError(403, 'Chỉ tài khoản Admin được quản lý backup/cập nhật.');
+            throw new HttpError(403, 'Chỉ tài khoản Admin được cập nhật website.');
         }
     }
 
@@ -309,24 +273,4 @@ final class App
         }
     }
 
-    private function uploadBackup(): array
-    {
-        $password = Validation::text($_POST, 'backup_password', 256);
-        $file = $_FILES['backup'] ?? null;
-        if (!is_array($file) || !is_int($file['error'] ?? null) || $file['error'] !== UPLOAD_ERR_OK || !is_int($file['size']) || $file['size'] > Backup::MAX_FILE || !is_uploaded_file($file['tmp_name'])) {
-            throw new HttpError(400, 'Chọn một file backup .qotp không quá 32 MiB.');
-        }
-        $content = file_get_contents($file['tmp_name'], false, null, 0, Backup::MAX_FILE + 1);
-        if ($content === false) {
-            throw new HttpError(400, 'Không đọc được file backup.');
-        }
-        try {
-            $manifest = $this->backup->validate(Backup::open($content, $password));
-        } catch (HttpError $error) {
-            throw $error;
-        } catch (\Throwable) {
-            throw new HttpError(400, 'Backup không tương thích hoặc chứa dữ liệu không hợp lệ.');
-        }
-        return [$manifest, $password];
-    }
 }

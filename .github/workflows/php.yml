@@ -62,6 +62,7 @@ jobs:
           find public_html quickotp-private tests tools -name '*.php' -print0 | xargs -0 -n1 php -l
           php tests/unit.php
           php tests/updater.php
+          python3 tests/maintenance.py
           python3 tests/integration.py
           python3 tools/package.py
           python3 tests/webroot.py

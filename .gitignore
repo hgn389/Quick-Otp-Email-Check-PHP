@@ -38,3 +38,5 @@ AGENTS.md
 __pycache__/
 /.vscode/
 /.idea/
+
+/quickotp-private/install-password.php

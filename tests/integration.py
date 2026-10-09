@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Install and exercise the PHP app against an isolated MySQL/MariaDB database."""
-import base64
+import html as html_tools
 import concurrent.futures
 import hashlib
 import http.cookiejar
@@ -25,7 +25,6 @@ from update_integration import exercise_update, prepare_network_boundaries
 PROJECT = pathlib.Path(__file__).resolve().parents[1]
 ADMIN = 'Synthetic-admin-password-2026!'
 NEW_ADMIN = 'Synthetic-new-admin-password-2026!'
-BACKUP_PASSWORD = 'Synthetic-backup-password-2026!'
 MAIL_PASSWORD = 'Synthetic-mail-app-password-2026!'
 
 
@@ -41,7 +40,7 @@ class Client:
         self.opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(self.jar), NoRedirect())
         self.csrf = ''
 
-    def request(self, method, path, data=None, form=None, upload=None, csrf=True, headers=None):
+    def request(self, method, path, data=None, form=None, csrf=True, headers=None):
         request_headers = dict(headers or {})
         body = None
         if data is not None:
@@ -50,14 +49,6 @@ class Client:
         if form is not None:
             body = urllib.parse.urlencode(form).encode()
             request_headers['Content-Type'] = 'application/x-www-form-urlencoded'
-        if upload is not None:
-            boundary = 'quickotp-' + secrets.token_hex(12)
-            parts = []
-            for key, value in upload[0].items():
-                parts.append((f'--{boundary}\r\nContent-Disposition: form-data; name="{key}"\r\n\r\n{value}\r\n').encode())
-            parts.extend([(f'--{boundary}\r\nContent-Disposition: form-data; name="backup"; filename="fixture.qotp"\r\nContent-Type: application/octet-stream\r\n\r\n').encode(), upload[1], (f'\r\n--{boundary}--\r\n').encode()])
-            body = b''.join(parts)
-            request_headers['Content-Type'] = 'multipart/form-data; boundary=' + boundary
         if csrf and self.csrf and method not in ('GET', 'HEAD'):
             request_headers['X-CSRF-Token'] = self.csrf
         request = urllib.request.Request(self.base + path, data=body, headers=request_headers, method=method)
@@ -89,31 +80,44 @@ def fixture(site, action, data=None):
     return result.stdout
 
 
-def exercise(site, base, database, install_token):
+def exercise(site, base, database, install_password):
     anonymous = Client(base)
     assert anonymous.request('GET', '/')[0] == 303
     code, html, headers = anonymous.request('GET', '/install.php')
-    assert code == 200 and ((b'install_token' in html) == bool(install_token))
+    assert code == 200 and b'name="install_password"' in html
     assert headers['Referrer-Policy'] == 'same-origin'
     assert b'disabled' not in html, html.decode()
     application_version = re.search(r"VERSION = '([^']+)'", (site / 'quickotp-private/src/System.php').read_text()).group(1)
     assert ('Quick OTP Mail · v' + application_version + '-php').encode() in html, 'Installer footer must match application version'
     csrf = re.search(rb'name="csrf" value="([a-f0-9]{64})"', html).group(1).decode()
-    form = dict(database, csrf=csrf, install_token=install_token, admin_password=ADMIN, admin_password_confirm=ADMIN)
-    assert anonymous.request('POST', '/install.php', form={**form, 'csrf': 'wrong'})[0] == 403
-    if install_token:
-        assert anonymous.request('POST', '/install.php', form={**form, 'install_token': 'wrong-install-token-1234567890'})[0] == 403
-    assert anonymous.request('POST', '/install.php', form=form, headers={'Origin': 'https://untrusted.example'})[0] == 403
+    form = dict(database, csrf=csrf, install_password=install_password, admin_password=ADMIN, admin_password_confirm=ADMIN)
+    code, failed, _ = anonymous.request('POST', '/install.php', form={**form, 'csrf': 'wrong'})
+    assert code == 403 and database['db_password'].encode() not in failed
+    code, failed, _ = anonymous.request('POST', '/install.php', form={**form, 'db_host': 'invalid;dsn', 'install_password': 'wrong-install-password-1234567890'})
+    assert code == 403, 'Installation password must be checked before database input'
+    assert 'Mật khẩu cài đặt không đúng'.encode() in failed
+    code, failed, _ = anonymous.request('POST', '/install.php', form=form, headers={'Origin': 'https://untrusted.example'})
+    assert code == 403 and database['db_password'].encode() not in failed
+    for invalid in [{'admin_password_confirm': 'Synthetic-does-not-match!'}, {'db_password': 'Synthetic-wrong-db-password'}]:
+        submitted = {**form, **invalid}
+        code, failed, headers = anonymous.request('POST', '/install.php', form=submitted)
+        assert code == 400 and 'no-store' in headers['Cache-Control']
+        for name in ['install_password', 'db_host', 'db_port', 'db_name', 'db_user', 'db_password', 'admin_password', 'admin_password_confirm']:
+            field = re.search(rb'<input[^>]*name="' + name.encode() + rb'"[^>]*value="([^"]*)"', failed)
+            assert field and html_tools.unescape(field.group(1).decode()) == str(submitted[name]), name
+    injected = {**form, 'db_name': '\"><script>alert(1)</script>'}
+    code, failed, _ = anonymous.request('POST', '/install.php', form=injected)
+    assert code == 400 and b'<script>alert(1)</script>' not in failed
     assert not (site / 'quickotp-private/config.php').exists()
     assert anonymous.request('POST', '/install.php', form=form)[0] == 303
     config_path = site / 'quickotp-private/config.php'
     assert config_path.exists() and (config_path.stat().st_mode & 0o777) == 0o600
-    assert not (site / 'quickotp-private/install-token.txt').exists()
+    assert not (site / 'quickotp-private/install-password.php').exists()
     assert anonymous.request('POST', '/install.php', form=form)[0] == 303
     assert not list((site / 'quickotp-private').glob('quickotp-probe-*'))
     assert not list(site.glob('quickotp-probe-*'))
     assert anonymous.request('GET', '/health/ready')[0] == 200
-    for path in ['/', '/settings.html', '/quick-otp.html', '/backup.html', '/system.html']:
+    for path in ['/', '/settings.html', '/quick-otp.html', '/system.html']:
         assert anonymous.request('GET', path)[0] == 303
     assert anonymous.request('POST', '/api/v1/settings/mail/password')[0] == 401
     for path in ['/quickotp-private/config.php', '/quickotp-private/storage/backups/a.qotp', '/.env', '/../../quickotp-private/config.php']:
@@ -171,47 +175,22 @@ def exercise(site, base, database, install_token):
     if os.environ.get('QUICKOTP_TEST_UPDATE_ONLY') == '1':
         return
 
-    code, original_backup, headers = client.request('POST', '/api/v1/backups/export', {'current_password': ADMIN, 'backup_password': BACKUP_PASSWORD})
-    assert code == 200 and original_backup.startswith(b'QOTPPH01') and MAIL_PASSWORD.encode() not in original_backup and database['db_password'].encode() not in original_backup
-    assert 'filename=' in headers['Content-Disposition']
-    assert client.request('POST', '/api/v1/backups/export', {'current_password': 'Synthetic-wrong-password', 'backup_password': BACKUP_PASSWORD})[0] == 401
-    assert client.request('POST', '/api/v1/backups/export', {'current_password': ADMIN, 'backup_password': 'short'})[0] == 400
+    assert anonymous.request('GET', '/backup.html')[0] == 404
+    for path in ['/api/v1/backups', '/api/v1/backups/export', '/api/v1/backups/recovery', '/api/v1/backups/inspect', '/api/v1/backups/restore']:
+        assert client.request('GET', path)[0] == 404
+        assert client.request('POST', path, {})[0] == 404
+    for path in ['/', '/settings.html', '/system.html']:
+        code, page, _ = client.request('GET', path)
+        assert code == 200 and b'class="header-nav"' in page
+        assert b'Workspace <span>/</span>' not in page and b'/backup.html' not in page
+        assert b'href="/quick-otp.html"' in page and b'href="/settings.html"' in page
     for i in range(3):
         assert client.request('POST', '/api/v1/generator/email', {'domain': 'example.com', 'type': 'random_crypto'})[0] == 200
     assert client.request('POST', '/api/v1/auth/password', {'current_password': ADMIN, 'new_password': NEW_ADMIN})[0] == 200
     assert second.request('GET', '/api/v1/auth/session')[0] == 401
     client.csrf = client.request('GET', '/api/v1/auth/session')[1]['csrf_token']
-    fields = {'current_password': NEW_ADMIN, 'backup_password': BACKUP_PASSWORD}
-    code, summary, _ = client.request('POST', '/api/v1/backups/inspect', upload=(fields, original_backup))
-    assert code == 200 and summary['counts']['generated_emails'] == 25 and summary['counts']['messages'] == 2
-    assert client.request('POST', '/api/v1/backups/restore', upload=(fields, original_backup))[0] == 400
-    fixture(site, 'rotate-key')
-    rotated = client.request('POST', '/api/v1/settings/mail/password')
-    assert rotated[0] == 200 and rotated[1].get('password') == MAIL_PASSWORD, 'Re-encrypted fixture credential must be readable after key rotation'
-    fixture(site, 'block-extra')
-    code, restored, _ = client.request('POST', '/api/v1/backups/restore', upload=({**fields, 'confirmation': 'RESTORE'}, original_backup))
-    assert code == 200 and restored['recovery_file'].endswith('.qotp')
-    assert client.request('GET', '/api/v1/auth/session')[0] == 401
-    client.login(ADMIN)
-    assert client.request('GET', '/api/v1/history/page')[1]['total'] == 25
-    loaded = client.request('POST', '/api/v1/settings/mail/password')
-    assert loaded[0] == 200 and loaded[1].get('password') == MAIL_PASSWORD, 'Restored credential must decrypt with destination key'
-    assert json.loads(fixture(site, 'check-mail', {'password': MAIL_PASSWORD})) == {'valid': True, 'encrypted': True, 'blocked': True}
-    code, files, _ = client.request('GET', '/api/v1/backups')
-    assert code == 200 and len(files['recovery_files']) == 1
-    assert client.request('POST', '/api/v1/backups/recovery', {'current_password': ADMIN, 'name': '../../config.php'})[0] == 400
-    code, recovery_backup, _ = client.request('POST', '/api/v1/backups/recovery', {'current_password': ADMIN, 'name': restored['recovery_file']})
-    assert code == 200 and recovery_backup.startswith(b'QOTPPH01')
-    mutated = bytearray(original_backup)
-    mutated[40] ^= 1
-    assert client.request('POST', '/api/v1/backups/inspect', upload=({'current_password': ADMIN, 'backup_password': BACKUP_PASSWORD}, bytes(mutated)))[0] == 400
-    for mutation in ('id', 'table', 'column', 'email', 'time'):
-        bad = base64.b64decode(fixture(site, 'mutate-backup', {'backup': base64.b64encode(original_backup).decode(), 'password': BACKUP_PASSWORD, 'mutation': mutation}))
-        assert client.request('POST', '/api/v1/backups/restore', upload=({'current_password': ADMIN, 'backup_password': BACKUP_PASSWORD, 'confirmation': 'RESTORE'}, bad))[0] == 400
-        assert client.request('GET', '/api/v1/history/page')[1]['total'] == 25
-    assert client.request('POST', '/api/v1/backups/restore', upload=({'current_password': ADMIN, 'backup_password': BACKUP_PASSWORD, 'confirmation': 'RESTORE'}, recovery_backup))[0] == 200
-    client.login(NEW_ADMIN)
     assert client.request('GET', '/api/v1/history/page')[1]['total'] == 28
+    assert client.request('POST', '/api/v1/settings/mail/password')[1]['password'] == MAIL_PASSWORD
     code, system, _ = client.request('GET', '/api/v1/system/status')
     assert code == 200 and system['version'].endswith('-php') and 'php_version' in system
     config_digest = hashlib.sha256(config_path.read_bytes()).hexdigest()
@@ -233,7 +212,7 @@ def exercise(site, base, database, install_token):
         statuses = list(executor.map(fail_login, range(5)))
     assert sorted(statuses) == [401, 401, 401, 401, 403]
     assert Client(base).request('POST', '/api/v1/auth/login', {'username': 'admin', 'password': NEW_ADMIN})[0] == 403
-    print('PASS: PHP web installation, private files, authentication/CSRF/session rotation, pagination, encrypted mail settings, exact recipient mail lookup, cross-key backup/restore/recovery, malformed backups, expired sessions and concurrent login blocking.')
+    print('PASS: PHP web installation, private files, authentication/CSRF/session rotation, pagination, encrypted mail settings, exact recipient mail lookup, installation password/form retention, removed backup endpoints, header links, expired sessions and concurrent login blocking.')
 
 
 def main():
@@ -242,13 +221,25 @@ def main():
         site = root / 'site'
         if os.environ.get('QUICKOTP_TEST_PACKAGE'):
             unpacked = root / 'unpacked'
+            website_package = os.environ['QUICKOTP_TEST_PACKAGE'].endswith('-website.zip')
+            if website_package:
+                (unpacked / 'public_html').mkdir(parents=True)
+                (unpacked / 'public_html/index.php').write_text('Existing hosting placeholder')
+                (unpacked / 'public_html/.htaccess').write_text('Existing hosting rewrite configuration')
+                (unpacked / 'public_html/hosting-placeholder.txt').write_text('Keep unrelated files')
             with zipfile.ZipFile(os.environ['QUICKOTP_TEST_PACKAGE']) as archive:
                 for member in archive.infolist():
                     path = pathlib.PurePosixPath(member.filename)
                     assert not path.is_absolute() and '..' not in path.parts
                 archive.extractall(unpacked)
+                if website_package:
+                    assert (unpacked / 'public_html/index.php').read_bytes() == archive.read('public_html/index.php')
+                    assert (unpacked / 'public_html/.htaccess').read_bytes() == archive.read('public_html/.htaccess')
+                    assert (unpacked / 'public_html/hosting-placeholder.txt').read_text() == 'Keep unrelated files'
+                    assert (unpacked / 'quickotp-private/bootstrap.php').is_file()
+                    assert not (unpacked / 'public_html/quickotp-private').exists()
             packages = list(unpacked.iterdir())
-            if (unpacked / 'index.php').exists():
+            if (unpacked / 'index.php').exists() or (unpacked / 'public_html/index.php').exists():
                 unpacked.rename(site)
             else:
                 assert len(packages) == 1 and packages[0].is_dir()
@@ -256,12 +247,11 @@ def main():
             (site / 'tools').mkdir()
             shutil.copyfile(PROJECT / 'tools/router.php', site / 'tools/router.php')
         else:
-            shutil.copytree(PROJECT, site, ignore=shutil.ignore_patterns('config.php', 'install-token.txt', 'storage', 'dist', '__pycache__'))
+            shutil.copytree(PROJECT, site, ignore=shutil.ignore_patterns('config.php', 'install-password.php', 'install-token.txt', 'storage', 'dist', '__pycache__'))
         (site / 'quickotp-private/storage').mkdir(mode=0o700, exist_ok=True)
         public = site if (site / 'index.php').exists() else site / 'public_html'
-        token = secrets.token_hex(24) if public != site else ''
-        if token:
-            (site / 'quickotp-private/install-token.txt').write_text(token)
+        token = secrets.token_hex(24)
+        (site / 'quickotp-private/install-password.php').write_text("<?php\nif (PHP_SAPI !== 'cli' && !defined('QUICKOTP_RUNTIME')) { http_response_code(403); exit; }\nreturn '" + token + "';\n")
         mysql = None
         php = None
         log = open(root / 'servers.log', 'wb')

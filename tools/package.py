@@ -11,18 +11,18 @@ import zipfile
 
 root = pathlib.Path(__file__).resolve().parents[1]
 version = (root / 'VERSION').read_text().strip()
-assert re.fullmatch(r'\d+\.\d+\.\d+(?:-beta_[1-9]\d*)?', version), 'Invalid version'
+assert re.fullmatch(r'\d+\.\d+\.\d+(?:-beta[-_][1-9]\d*)?', version), 'Invalid version'
 source_version = re.search(r"VERSION = '([^']+)'", (root / 'quickotp-private/src/System.php').read_text()).group(1)
 assert version == source_version, 'Version file and application must match'
 assert (root / 'README.md').read_text().splitlines()[0] == '# Quick OTP Mail PHP v' + version, 'README version must match application'
 assert '\n## v' + version + ' ' in (root / 'CHANGELOG.md').read_text(), 'Changelog must include application version'
 assert 'esc(System::VERSION)' in (root / 'public_html/install.php').read_text(), 'Installer footer must use application version'
 for view in (root / 'quickotp-private/views').glob('*.html'):
-    asset_versions = re.findall(r'\?v=php-(\d+\.\d+\.\d+(?:-beta_[1-9]\d*)?)', view.read_text())
+    asset_versions = re.findall(r'\?v=php-(\d+\.\d+\.\d+(?:-beta[-_][1-9]\d*)?)', view.read_text())
     assert all(asset == version for asset in asset_versions), 'Asset version mismatch: ' + view.name
 assert (root / 'quickotp-private/vendor/autoload.php').is_file(), 'Run composer install first'
 excluded_patterns = (
-    '.git', '.github', 'AGENTS.md', '.env', '.env.*', '*.env', 'config.php', 'install-token.txt',
+    '.git', '.github', 'AGENTS.md', '.env', '.env.*', '*.env', 'config.php', 'install-password.php', 'install-token.txt',
     '__pycache__', '.vscode', '.idea', 'tests', 'Tests', 'test', 'docs', 'examples',
     '*.log', '*.pem', '*.key', '*.p12', '*.pfx', '*.jks', '*.keystore',
     '*.db', '*.db-*', '*.sqlite', '*.sqlite-*', '*.sqlite3', '*.sqlite3-*',
@@ -54,7 +54,7 @@ with tempfile.TemporaryDirectory(prefix='quickotp-php-package-') as temporary:
     for directory in ['src', 'views', 'vendor']:
         shutil.copytree(root / 'quickotp-private' / directory, private / directory,
                         ignore=shutil.ignore_patterns(*excluded_patterns))
-    for file in ['bootstrap.php', 'update-recovery.php', 'schema.sql', 'names.json', 'composer.json', 'composer.lock', 'config.example.php']:
+    for file in ['bootstrap.php', 'update-recovery.php', 'schema.sql', 'names.json', 'composer.json', 'composer.lock', 'config.example.php', 'install-password.example.php']:
         source = root / 'quickotp-private' / file
         assert source.is_file() and not source.is_symlink(), 'Invalid private source file'
         shutil.copyfile(source, private / file)
@@ -65,7 +65,7 @@ with tempfile.TemporaryDirectory(prefix='quickotp-php-package-') as temporary:
     for file in package.rglob('*'):
         if not file.is_file():
             continue
-        assert file.name not in ('config.php', 'install-token.txt', 'AGENTS.md'), 'Unexpected configuration/instructions in package'
+        assert file.name not in ('config.php', 'install-password.php', 'install-token.txt', 'AGENTS.md'), 'Unexpected configuration/instructions in package'
         assert file.name != '.env' and not file.name.startswith('.env.'), 'Unexpected environment configuration in package'
         assert not file.is_symlink(), 'Symlinks not supported in installer'
         assert not any(file.match(pattern) for pattern in excluded_patterns
@@ -82,20 +82,14 @@ with tempfile.TemporaryDirectory(prefix='quickotp-php-package-') as temporary:
                 zip_entry(archive, str(file.relative_to(package.parent)), file.read_bytes())
     website_destination = dist / (name + '-website.zip')
     with zipfile.ZipFile(website_destination, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
-        # No wrapper: extract the contents directly into the website document root.
+        # No wrapper: extract at /home/domain.com, merging the existing public_html.
         for file in sorted(package.rglob('*')):
-            if not file.is_file() or file.parent == package:
+            if not file.is_file() or file == package / 'update.json':
                 continue
-            relative = file.relative_to(package).as_posix()
-            if relative.startswith('public_html/'):
-                relative = relative[len('public_html/'):]
-            zip_entry(archive, relative, file.read_bytes())
+            zip_entry(archive, file.relative_to(package).as_posix(), file.read_bytes())
         deny = root / 'quickotp-private/.htaccess'
         assert deny.is_file() and not deny.is_symlink(), 'Private deny rules are required'
         zip_entry(archive, 'quickotp-private/.htaccess', deny.read_bytes())
-        # Keep installer documentation out of the public URL space.
-        for document in ['README.md', 'CYBERPANEL.md', 'SECURITY_REVIEW.md', 'CHANGELOG.md', 'VERSION']:
-            zip_entry(archive, 'quickotp-private/' + document, (root / document).read_bytes())
     destinations = [destination, website_destination]
     (dist / 'checksums-php.txt').write_text(''.join(
         hashlib.sha256(file.read_bytes()).hexdigest() + '  ' + file.name + '\n' for file in destinations))

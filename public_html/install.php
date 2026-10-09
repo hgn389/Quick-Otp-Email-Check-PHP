@@ -2,9 +2,21 @@
 declare(strict_types=1);
 
 define('QUICKOTP_RUNTIME', true);
-$bootstrap = is_file(__DIR__ . '/quickotp-private/bootstrap.php')
-    ? __DIR__ . '/quickotp-private/bootstrap.php'
-    : dirname(__DIR__) . '/quickotp-private/bootstrap.php';
+$siblingBootstrap = dirname(__DIR__) . '/quickotp-private/bootstrap.php';
+$nestedBootstrap = __DIR__ . '/quickotp-private/bootstrap.php';
+$siblingAvailable = @is_file($siblingBootstrap);
+$nestedAvailable = @is_file($nestedBootstrap);
+$duplicatePrivate = $siblingAvailable && $nestedAvailable;
+$bootstrap = $siblingAvailable ? $siblingBootstrap : $nestedBootstrap;
+if ($duplicatePrivate || (!$siblingAvailable && !$nestedAvailable) || !@is_readable($bootstrap)) {
+    http_response_code(503);
+    header('Content-Type: text/plain; charset=utf-8');
+    header('Cache-Control: no-store');
+    header('X-LiteSpeed-Cache-Control: no-cache');
+    exit($duplicatePrivate
+        ? 'Có hai thư mục quickotp-private. Dừng triển khai và giữ đúng bản chứa config.php cùng storage hiện tại theo hướng dẫn chuyển thư mục trong README.'
+        : 'Không đọc được quickotp-private. Giải nén bộ cài vào thư mục gốc website để public_html và quickotp-private nằm ngang hàng; kiểm tra quyền PHP và open_basedir.');
+}
 require_once $bootstrap;
 require_once dirname($bootstrap) . '/src/Installer.php';
 
@@ -17,11 +29,12 @@ Http::headers();
 // Native form posts need a non-opaque Origin; external sites still receive no referrer.
 header('Referrer-Policy: same-origin');
 $error = '';
+$values = [];
 try {
     $private = quickotpPrivateDirectory();
 } catch (RuntimeException) {
     http_response_code(503);
-    exit('Kiểm tra document root của website. File index.php và install.php phải nằm ngay trong thư mục gốc public_html; không giải nén thêm một thư mục lồng bên ngoài.');
+    exit('Kiểm tra document root của website. File index.php và install.php phải nằm ngay trong public_html; thư mục quickotp-private nằm ngang hàng public_html trong thư mục gốc website.');
 }
 if (is_file($private . '/config.php')) {
     Http::redirect('/login.html');
@@ -53,6 +66,11 @@ try {
         if (!is_string($_POST['csrf'] ?? null) || !hash_equals($_SESSION['setup_csrf'], $_POST['csrf'])) {
             throw new HttpError(403, 'Phiên cài đặt hết hạn. Tải lại trang và thử lại.');
         }
+        foreach (['install_password' => 256, 'db_host' => 253, 'db_port' => 5, 'db_name' => 64, 'db_user' => 128, 'db_password' => 1024, 'admin_password' => 72, 'admin_password_confirm' => 72] as $name => $limit) {
+            if (is_string($_POST[$name] ?? null) && strlen($_POST[$name]) <= $limit) {
+                $values[$name] = $_POST[$name];
+            }
+        }
         Installer::install($private, $_POST);
         $_SESSION = [];
         session_destroy();
@@ -68,7 +86,8 @@ try {
     $error = 'Không hoàn tất được cài đặt. Kiểm tra quyền CREATE/INSERT của database user và quyền ghi thư mục riêng.';
 }
 $ready = !in_array(false, $checks, true);
-$legacyToken = file_exists($private . '/install-token.txt') || is_link($private . '/install-token.txt');
+$passwordConfigured = Installer::installationPassword($private) !== '';
+$ready = $ready && $passwordConfigured;
 $protectionError = '';
 try {
     \QuickOtp\Layout::verifyProtection($private);
@@ -82,17 +101,19 @@ function esc(string $value): string
 }
 ?>
 <!doctype html>
-<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cài đặt Quick OTP Mail PHP</title><link rel="stylesheet" href="/auth.css?v=php-1.0.0-beta_1"><link rel="stylesheet" href="/install.css?v=php-1.0.0-beta_1"></head>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cài đặt Quick OTP Mail PHP</title><link rel="stylesheet" href="/auth.css?v=php-1.0.0-beta-2"><link rel="stylesheet" href="/install.css?v=php-1.0.0-beta-2"></head>
 <body><main class="auth-shell install-shell"><div class="auth-brand"><span class="brand-mark">✉</span><span>Quick OTP Mail · PHP</span></div><section class="auth-card install-card"><h1>Cài đặt website</h1><p>Kết nối database MySQL/MariaDB và tạo tài khoản Admin.</p>
 <details class="install-requirements" <?= !$ready ? 'open' : '' ?>><summary><?= $ready ? 'Máy chủ đã sẵn sàng cài đặt' : 'Kiểm tra yêu cầu máy chủ' ?></summary><ul class="install-checks">
 <?php foreach ($checks as $label => $ok): ?><li class="<?= $ok ? 'check-ok' : 'check-error' ?>"><?= $ok ? '✓' : '✕' ?> <?= esc($label) ?></li><?php endforeach; ?>
 </ul></details>
+<?php if (!$passwordConfigured): ?><div class="install-error" role="alert">Chưa đặt mật khẩu cài đặt. Trong File Manager, sao chép <code>quickotp-private/install-password.example.php</code> thành <code>install-password.php</code> cùng thư mục, sửa <code>return '';</code> thành mật khẩu riêng tối thiểu 16 ký tự, tối đa 256 byte, rồi tải lại trang. File này không được đưa lên GitHub.</div><?php endif; ?>
 <?php if ($protectionError !== ''): ?><div class="install-error" role="alert"><?= esc($protectionError) ?></div><?php endif; ?>
 <?php if ($error !== ''): ?><div class="install-error" role="alert"><?= esc($error) ?></div><?php endif; ?>
 <form method="post" action="/install.php" autocomplete="off"><input type="hidden" name="csrf" value="<?= esc($_SESSION['setup_csrf']) ?>">
-<?php if ($legacyToken): ?><label for="installToken">Mã cài đặt cũ</label><input id="installToken" name="install_token" type="password" minlength="20" maxlength="256" autocomplete="off" required><?php endif; ?>
-<div class="install-grid"><div><label for="dbHost">Database host</label><input id="dbHost" name="db_host" value="localhost" maxlength="253" required></div><div><label for="dbPort">Port</label><input id="dbPort" name="db_port" type="number" value="3306" min="1" max="65535" required></div></div>
-<label for="dbName">Tên database</label><input id="dbName" name="db_name" maxlength="64" required><label for="dbUser">Database user</label><input id="dbUser" name="db_user" maxlength="128" required><label for="dbPassword">Database password</label><input id="dbPassword" name="db_password" type="password" autocomplete="new-password" maxlength="1024" required>
-<label for="adminPassword">Mật khẩu Admin</label><input id="adminPassword" name="admin_password" type="password" autocomplete="new-password" minlength="10" maxlength="72" required><label for="adminConfirm">Nhập lại mật khẩu Admin</label><input id="adminConfirm" name="admin_password_confirm" type="password" autocomplete="new-password" minlength="10" maxlength="72" required>
+<label for="installPassword">Mật khẩu cài đặt</label><input id="installPassword" name="install_password" type="password" minlength="16" maxlength="256" autocomplete="off" required value="<?= esc($values['install_password'] ?? '') ?>">
+<p class="install-note">Quản trị viên đặt mật khẩu này trước trong <code>quickotp-private/install-password.php</code>. Mật khẩu cài đặt khác với mật khẩu Admin bên dưới.</p>
+<div class="install-grid"><div><label for="dbHost">Database host</label><input id="dbHost" name="db_host" maxlength="253" required value="<?= esc($values['db_host'] ?? 'localhost') ?>"></div><div><label for="dbPort">Port</label><input id="dbPort" name="db_port" type="number" min="1" max="65535" required value="<?= esc($values['db_port'] ?? '3306') ?>"></div></div>
+<label for="dbName">Tên database</label><input id="dbName" name="db_name" maxlength="64" required value="<?= esc($values['db_name'] ?? '') ?>"><label for="dbUser">Database user</label><input id="dbUser" name="db_user" maxlength="128" required value="<?= esc($values['db_user'] ?? '') ?>"><label for="dbPassword">Database password</label><input id="dbPassword" name="db_password" type="password" autocomplete="new-password" maxlength="1024" required value="<?= esc($values['db_password'] ?? '') ?>">
+<label for="adminPassword">Mật khẩu Admin</label><input id="adminPassword" name="admin_password" type="password" autocomplete="new-password" minlength="10" maxlength="72" required value="<?= esc($values['admin_password'] ?? '') ?>"><label for="adminConfirm">Nhập lại mật khẩu Admin</label><input id="adminConfirm" name="admin_password_confirm" type="password" autocomplete="new-password" minlength="10" maxlength="72" required value="<?= esc($values['admin_password_confirm'] ?? '') ?>">
 <p class="install-note">Tên đăng nhập là <strong>admin</strong>. Database phải được tạo trước trong CyberPanel. Dùng website hoặc subdomain riêng để các đường dẫn hoạt động từ thư mục gốc.</p>
 <button id="installButton" type="submit" <?= !$ready ? 'disabled' : '' ?>>Cài đặt Quick OTP Mail</button></form></section><div class="auth-foot">© 2026 Quick OTP Mail · v<?= esc(System::VERSION) ?>-php</div></main></body></html>

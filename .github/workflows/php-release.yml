@@ -30,7 +30,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           release_flags=(--latest=true)
-          if [[ "$GITHUB_REF_NAME" == *-beta_* ]]; then
+          if [[ "$GITHUB_REF_NAME" == *-beta[-_]* ]]; then
             release_flags=(--prerelease --latest=false)
           fi
           gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || gh release create "$GITHUB_REF_NAME" "${release_flags[@]}" --notes-file RELEASE_NOTES.md --title "Quick OTP Mail PHP ${GITHUB_REF_NAME}"
