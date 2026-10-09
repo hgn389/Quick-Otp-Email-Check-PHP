@@ -6,12 +6,13 @@ composer install --no-dev --prefer-dist
 cd ..
 php tests/unit.php
 php tests/updater.php
+node tests/system-ui.js
 python3 tests/maintenance.py
 python3 tests/integration.py
 php -S 127.0.0.1:8080 -t public_html tools/router.php
 ```
 
-Kiểm thử tích hợp mặc định tạo một MariaDB riêng trong thư mục tạm và tự dừng sau khi chạy. Cần `mariadb-install-db`, `mariadbd`, `mariadb`, Python 3 và PHP. Có thể chỉ định database thử bằng các biến `QUICKOTP_TEST_DB_HOST`, `QUICKOTP_TEST_DB_PORT`, `QUICKOTP_TEST_DB_NAME`, `QUICKOTP_TEST_DB_USER`, `QUICKOTP_TEST_DB_PASSWORD`; tên database phải bắt đầu bằng `quickotp_test_`.
+Kiểm thử tích hợp mặc định tạo một MariaDB riêng trong thư mục tạm và tự dừng sau khi chạy. Cần `mariadb-install-db`, `mariadbd`, `mariadb`, Python 3 và PHP. The release-link regression test also needs Node.js 20 or later. Có thể chỉ định database thử bằng các biến `QUICKOTP_TEST_DB_HOST`, `QUICKOTP_TEST_DB_PORT`, `QUICKOTP_TEST_DB_NAME`, `QUICKOTP_TEST_DB_USER`, `QUICKOTP_TEST_DB_PASSWORD`; tên database phải bắt đầu bằng `quickotp_test_`.
 
 Database thử chỉ định cần trống. Nếu muốn chạy lại trên cùng database thử, đặt `QUICKOTP_TEST_RESET_DATABASE=1` để xóa các bảng `qotp_*` trước khi chạy. Chỉ dùng cờ này với database dành riêng cho kiểm thử; CI sử dụng cờ này cho hai lượt source và ZIP.
 
@@ -36,4 +37,4 @@ QUICKOTP_TEST_PACKAGE="$PWD/dist/Quick-Otp-Email-Check-PHP_v$(cat VERSION).zip" 
 QUICKOTP_TEST_PACKAGE="$PWD/dist/Quick-Otp-Email-Check-PHP_v$(cat VERSION)-website.zip" python3 tests/integration.py
 ```
 
-Beta tags and package filenames now use `v1.0.0-beta-2`; discovery also accepts legacy `v1.0.0-beta_1` tags. Fresh setup requires a private `install-password.php` created from the empty example, including when testing a source checkout. Never add that configured file to an archive or commit. `VERSION`, application version, asset versions, installer/footer and release metadata use the same version identifier. Publish beta tags as GitHub prereleases. Beta clients accept later beta versions and stable versions; stable clients do not install beta versions.
+Beta tags and package filenames now use `v1.0.0-beta-3`; discovery also accepts legacy `v1.0.0-beta_1` tags. Fresh setup requires a private `install-password.php` created from the empty example, including when testing a source checkout. Never add that configured file to an archive or commit. `VERSION`, application version, asset versions, installer/footer and release metadata use the same version identifier. Publish beta tags as GitHub prereleases. Beta clients accept later beta versions and stable versions; stable clients do not install beta versions.

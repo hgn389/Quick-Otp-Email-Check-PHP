@@ -25,6 +25,9 @@ def main():
         legacy = root / 'legacy/public_html'
         shutil.copytree(root / 'public_html', legacy)
         shutil.copytree(root / 'quickotp-private', legacy / 'quickotp-private')
+        # A website home can contain unrelated PHP files outside the document root.
+        (root / 'index.php').write_text("<?php throw new RuntimeException('Home placeholder must not execute');")
+        (root / 'install.php').write_text("<?php throw new RuntimeException('Home placeholder must not execute');")
         for layout, protected in [('split', False), ('split', True), ('legacy', False), ('legacy', True)]:
             public = root / 'public_html' if layout == 'split' else legacy
             private = root / 'quickotp-private' if layout == 'split' else legacy / 'quickotp-private'

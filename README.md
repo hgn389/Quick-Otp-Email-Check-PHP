@@ -1,13 +1,13 @@
-# Quick OTP Mail PHP v1.0.0-beta-2
+# Quick OTP Mail PHP v1.0.0-beta-3
 
 A PHP email and OTP dashboard for CyberPanel Free, OpenLiteSpeed and Apache, using MySQL or MariaDB.
 
 ## Quick installation: upload, extract, open your website
 
-**v1.0.0-beta-2** is a beta prerelease. [Download the ready-to-install website ZIP](https://github.com/hgn389/Quick-Otp-Email-Check-PHP/releases/download/v1.0.0-beta-2/Quick-Otp-Email-Check-PHP_v1.0.0-beta-2-website.zip) or open the [release page and SHA-256 checksums](https://github.com/hgn389/Quick-Otp-Email-Check-PHP/releases/tag/v1.0.0-beta-2). Use this version for new installations; beta_1 is retained for historical reference. Do not use GitHub's **Source code (zip)** for upload-only installation.
+**v1.0.0-beta-3** is a beta prerelease. [Download the ready-to-install website ZIP](https://github.com/hgn389/Quick-Otp-Email-Check-PHP/releases/download/v1.0.0-beta-3/Quick-Otp-Email-Check-PHP_v1.0.0-beta-3-website.zip) or open the [release page and SHA-256 checksums](https://github.com/hgn389/Quick-Otp-Email-Check-PHP/releases/tag/v1.0.0-beta-3). Use this version for new installations; earlier beta releases are retained for historical reference. Do not use GitHub's **Source code (zip)** for upload-only installation.
 
 1. Create a website, enable SSL and create a MySQL/MariaDB database in CyberPanel. Select **PHP 8.3 or later**. Keep the website document root at `/home/domain.com/public_html/`.
-2. Upload **`Quick-Otp-Email-Check-PHP_v1.0.0-beta-2-website.zip`** into **`/home/domain.com/`**, then extract it **there**, allowing replacement of application files with the same names. Use SFTP or a file manager that can access the website's home directory. Keep hidden `.htaccess` files and delete the uploaded ZIP afterwards. The archive merges its `public_html/` into the existing directory and places `quickotp-private/` beside it. It does not add a version-named wrapper.
+2. Upload **`Quick-Otp-Email-Check-PHP_v1.0.0-beta-3-website.zip`** into **`/home/domain.com/`**, then extract it **there**, allowing replacement of application files with the same names. Use SFTP or a file manager that can access the website's home directory. Keep hidden `.htaccess` files and delete the uploaded ZIP afterwards. The archive merges its `public_html/` into the existing directory and places `quickotp-private/` beside it. It does not add a version-named wrapper.
 3. **Set your installation password before opening setup.** Copy `/home/domain.com/quickotp-private/install-password.example.php` to **`install-password.php`** in the same directory. Edit the last line, replacing `return '';` with `return 'YOUR_UNIQUE_INSTALLATION_PASSWORD';`. Choose your own unique, preferably randomly generated password of **at least 16 characters and at most 256 bytes** (16–256 characters when using ASCII); the uppercase value is a placeholder and will be rejected if left unchanged. Use letters, numbers and symbols without a single quote or backslash to keep PHP editing simple. Keep the PHP access guard above the last line. If your file manager allows it, set this configured file to permission `600` under the website owner.
 4. Open **`https://domain.com/`**. Enter that installation password, the database details and your chosen Admin password twice. Database host is normally `localhost`; database port is normally `3306`. The installation password and Admin password are separate.
 5. Click **Install**, then log in with **`admin`** and the Admin password you just chose. In **Settings**, add your email domains and configure IMAP/App Password.
@@ -35,7 +35,7 @@ If you prefer SSH, after uploading the website ZIP to `/home/domain.com/`, run:
 
 ```bash
 cd /home/domain.com/
-unzip -o Quick-Otp-Email-Check-PHP_v1.0.0-beta-2-website.zip
+unzip -o Quick-Otp-Email-Check-PHP_v1.0.0-beta-3-website.zip
 ```
 
 The `-o` option overwrites matching files. Continue with step 3. Set both `public_html` and `quickotp-private` to the website owner; if PHP uses `open_basedir`, it must allow `/home/domain.com/quickotp-private/`. Do not make `/home/domain.com/` the public document root.
@@ -86,11 +86,24 @@ If the message appeared after an update, check whether `quickotp-private/storage
 
 Email domains must have catch-all or aliases at your mail provider. Generating an address does not create a mailbox. Neither the `imap` nor `mailparse` PHP extension is required.
 
+## Unlocking a blocked login IP
+
+After five failed logins, the PHP edition stores a permanent block in the database, not in a `blacklist.txt` file. In CyberPanel/phpMyAdmin, open this website's database and identify the blocked address in `qotp_blocked_ips`. Replace `YOUR_BLOCKED_IP` below with that exact address, then run:
+
+```sql
+START TRANSACTION;
+DELETE FROM qotp_blocked_ips WHERE ip_address = 'YOUR_BLOCKED_IP';
+DELETE FROM qotp_login_failures WHERE ip_address = 'YOUR_BLOCKED_IP';
+COMMIT;
+```
+
+Both records must be cleared so the old failure count does not immediately block the IP again. This does not change the Admin password. Behind a reverse proxy, the recorded address is the IP passed to PHP as `REMOTE_ADDR`; configure trusted client-IP handling in your webserver rather than trusting arbitrary request headers in application code.
+
 ## Updates and manual backups
 
 Backup & Restore has been removed from the menu, pages and application APIs. For a complete manual backup, export the database with your hosting tools and securely copy **`quickotp-private/config.php`** and **`quickotp-private/storage/`** beside `public_html`. Config contains the key used to decrypt IMAP credentials. Store these copies outside the public website and never publish them.
 
-To update, use **System status → Check for updates → Update now** and confirm your current Admin password. The application verifies the package before briefly entering maintenance and replacing the source. Database contents, configuration and storage are preserved. An encrypted database snapshot and source recovery copy are kept internally for update recovery; there is no user-facing backup/restore page. The recommended split layout and previous installations with `quickotp-private` inside the document root are both supported.
+Existing beta-2 installations can update to beta-3 through the built-in updater. To update, use **System status → Check for updates → Update now** and confirm your current Admin password. The application verifies the package before briefly entering maintenance and replacing the source. Database contents, configuration and storage are preserved. An encrypted database snapshot and source recovery copy are kept internally for update recovery; there is no user-facing backup/restore page. The recommended split layout and previous installations with `quickotp-private` inside the document root are both supported.
 
 **Upgrading from beta_1:** its old release parser does not recognize the new `-beta-2` tag spelling. Apply this update manually once, preserving `config.php` and `storage`; subsequent versions understand both spellings. With the canonical ZIP, copy the contents of `public_html/` into your existing document root and merge `quickotp-private/` into your existing private directory. Take a full manual backup first; do not recreate the database or run setup again. Remove obsolete `backup.js` and `quickotp-private/views/backup.html` if they remain from the old version. Refresh PHP/OPcache after replacement.
 

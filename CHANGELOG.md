@@ -1,5 +1,14 @@
 # Changelog PHP
 
+## v1.0.0-beta-3 — 2026-10-09
+
+- Fix split-directory detection when unrelated index.php/install.php files exist in the website home.
+- Restore interrupted updates using the saved layout even if a public entry point is missing; preserve unrelated website-home files.
+- Show official beta release links on the System status page, including both supported beta tag spellings.
+- Correct blocked-login help for the PHP database implementation and document clearing both the permanent block and failure count.
+- Run CI with Node 24 actions on Ubuntu 24.04 and disable the unused Go module cache.
+- Add regression coverage for layout selection, missing-entry-point recovery and release-link validation. Preserve the beta-2 permission and PHP 8.4 routing test fixes.
+
 ## v1.0.0-beta-2 — 2026-10-09
 
 - Discard malformed installation-password file output, reject the documented placeholder, align UTF-8 password length with the form and invalidate this file in OPcache after manual edits.

@@ -7,18 +7,19 @@ permissions:
   contents: read
 jobs:
   secrets:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
         with:
           go-version: '1.27.x'
+          cache: false
       - name: Scan secrets
         run: |
           go install github.com/zricethezav/gitleaks/v8@v8.30.1
           gitleaks dir . --redact=100 --no-banner --ignore-gitleaks-allow
   check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         include:
@@ -39,7 +40,7 @@ jobs:
           --health-cmd="mysqladmin ping -h 127.0.0.1 || mariadb-admin ping -h 127.0.0.1"
           --health-interval=10s --health-timeout=5s --health-retries=15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
@@ -62,6 +63,7 @@ jobs:
           find public_html quickotp-private tests tools -name '*.php' -print0 | xargs -0 -n1 php -l
           php tests/unit.php
           php tests/updater.php
+          node tests/system-ui.js
           python3 tests/maintenance.py
           python3 tests/integration.py
           python3 tools/package.py

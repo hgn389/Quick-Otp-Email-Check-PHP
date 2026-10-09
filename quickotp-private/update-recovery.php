@@ -134,7 +134,9 @@ final class UpdateRecovery
             throw new RuntimeException('Invalid recovery journal');
         }
         $flat = $journal['flat'] ?? false;
-        if (!is_bool($flat) || $flat !== is_file($root . '/index.php')) {
+        // The saved layout must survive missing/broken entry points after an interrupted update.
+        $public = $flat === true ? $root : $root . '/public_html';
+        if (!is_bool($flat) || !is_dir($public) || is_link($public) || realpath($public) !== $public) {
             throw new RuntimeException('Recovery layout does not match website');
         }
         foreach ($journal['files'] as $relative => $old) {

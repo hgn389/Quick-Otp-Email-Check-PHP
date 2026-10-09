@@ -14,7 +14,9 @@ final class Layout
             || is_link($private) || is_link($parent)) {
             throw new RuntimeException('Invalid website directory');
         }
-        $public = is_file($parent . '/index.php') ? $parent : $parent . '/public_html';
+        $split = $parent . '/public_html';
+        // A hosting placeholder in the website home must not hide a complete split layout.
+        $public = is_file($split . '/index.php') && is_file($split . '/install.php') ? $split : $parent;
         if (realpath($public) !== $public || !is_file($public . '/index.php')
             || !is_file($public . '/install.php') || is_link($public)) {
             throw new RuntimeException('Invalid public directory');

@@ -1,5 +1,11 @@
 # Security review
 
+## v1.0.0-beta-3 patch review
+
+Split-directory selection now checks for a complete public_html entry-point pair before considering the legacy layout, preventing unrelated website-home files from breaking setup or updater/recovery path detection. Web requests still require the selected directory to match DOCUMENT_ROOT. Standalone recovery uses the validated journal layout and canonical public directory, so missing/broken entry points do not prevent rollback. Regression tests cover home placeholders, missing-entry-point recovery and HTTP setup, while retaining legacy-layout protection checks.
+
+The System status release link accepts only this repository's HTTPS stable or supported beta-tag URLs, without query strings or fragments. Tests cover both beta spellings and rejection of invalid/external URLs. Login help now points to the database block records; the permanent-block policy is unchanged.
+
 ## v1.0.0-beta-2 split-directory installer
 
 The website package extracts into the website home directory with sibling `public_html` and `quickotp-private` directories. Only `public_html` is the document root, so configuration, source libraries, dependencies, templates and runtime storage are outside direct HTTP access. Entry points stop if both supported private-directory locations contain a bootstrap, avoiding ambiguous configuration after migration. PHP must have filesystem permissions and any required open_basedir access to the sibling directory.

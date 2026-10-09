@@ -8,7 +8,7 @@ function releaseLink(release) {
   if (!release) return;
   try {
     const url = new URL(release.release_url);
-    if (url.origin !== 'https://github.com' || !/^\/hgn389\/Quick-Otp-Email-Check-PHP\/releases\/tag\/v\d+\.\d+\.\d+$/.test(url.pathname) || url.search || url.hash) return;
+    if (url.origin !== 'https://github.com' || !/^\/hgn389\/Quick-Otp-Email-Check-PHP\/releases\/tag\/v\d+\.\d+\.\d+(?:-beta[-_][1-9]\d*)?$/.test(url.pathname) || url.search || url.hash || url.username || url.password) return;
     $('releaseLink').href = url.href;
     $('releaseLink').hidden = false;
   } catch (_) {}

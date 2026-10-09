@@ -1,8 +1,8 @@
 # CyberPanel installation and recovery
 
-## Upload-only installation (v1.0.0-beta-2)
+## Upload-only installation (v1.0.0-beta-3)
 
-Use `Quick-Otp-Email-Check-PHP_v1.0.0-beta-2-website.zip` and extract directly into **`/home/domain.com/`**, not `public_html`. The archive has no wrapper directory. Allow replacement of matching files so its `public_html/` merges into the existing website directory. It does not delete unrelated files. Keep the website document root at `/home/domain.com/public_html/`.
+Use `Quick-Otp-Email-Check-PHP_v1.0.0-beta-3-website.zip` and extract directly into **`/home/domain.com/`**, not `public_html`. The archive has no wrapper directory. Allow replacement of matching files so its `public_html/` merges into the existing website directory. It does not delete unrelated files. Keep the website document root at `/home/domain.com/public_html/`.
 
 Use SFTP or a file manager with access to the website home directory. If your panel only exposes `public_html`, use SFTP or the two-command SSH extraction in README. The package includes dependencies; Composer is not needed. Download the beta prerelease and checksums from the release link in README.
 
