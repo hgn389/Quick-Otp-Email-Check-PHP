@@ -109,7 +109,12 @@ def main():
                         assert client.request('GET', '/quickotp-private/bootstrap.php')[0] == 403
                     else:
                         for path in ['/quickotp-private/schema.sql', '/quickotp-private/names.json', '/quickotp-private/views/login.html']:
-                            assert client.request('GET', path)[0] in (403, 404)
+                            code, body, headers = client.request('GET', path)
+                            if layout == 'split' and not protected and code == 303:
+                                # PHP 8.4's built-in server can route missing files through index.php.
+                                assert headers['Location'] == '/install.php' and body == b''
+                            else:
+                                assert code in (403, 404), (layout, protected, path, code, body)
                     password_file.unlink()
                     assert not list(public.glob('quickotp-probe-*'))
                     assert not list(private.glob('quickotp-probe-*'))
