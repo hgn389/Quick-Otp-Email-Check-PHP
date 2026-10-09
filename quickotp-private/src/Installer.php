@@ -20,43 +20,8 @@ final class Installer
         return $checks;
     }
 
-    public static function installationPassword(string $private): string
-    {
-        $file = $private . '/install-password.php';
-        if (is_link($file) || !is_file($file) || !is_readable($file) || filesize($file) > 4096) {
-            return '';
-        }
-        // Manual edits must take effect even when OPcache timestamp checks are disabled.
-        if (function_exists('opcache_invalidate')) {
-            @opcache_invalidate($file, true);
-        }
-        // A malformed PHP file can emit its contents instead of returning a password.
-        // Discard that output and keep setup locked rather than disclosing the file.
-        ob_start();
-        try {
-            $password = require $file;
-            $hasOutput = ob_get_length() !== 0;
-        } catch (\Throwable) {
-            return '';
-        } finally {
-            ob_end_clean();
-        }
-        return !$hasOutput && is_string($password) && strlen($password) <= 256
-            && function_exists('mb_check_encoding') && mb_check_encoding($password, 'UTF-8')
-            && mb_strlen($password) >= 16 && !str_contains($password, "\0")
-            && trim($password) !== '' && $password !== 'YOUR_UNIQUE_INSTALLATION_PASSWORD' ? $password : '';
-    }
-
     public static function install(string $private, array $input): void
     {
-        $installationPassword = self::installationPassword($private);
-        if ($installationPassword === '') {
-            throw new HttpError(503, 'Chưa đặt mật khẩu cài đặt. Sao chép install-password.example.php thành install-password.php trong quickotp-private và đặt mật khẩu riêng trước khi tiếp tục.');
-        }
-        $provided = Validation::text($input, 'install_password', 256);
-        if (!hash_equals(hash('sha256', $installationPassword), hash('sha256', $provided))) {
-            throw new HttpError(403, 'Mật khẩu cài đặt không đúng. Kiểm tra mật khẩu do quản trị viên đặt trong quickotp-private/install-password.php.');
-        }
         if (in_array(false, self::requirements($private), true)) {
             throw new HttpError(400, 'Máy chủ chưa đáp ứng yêu cầu cài đặt.');
         }
@@ -137,7 +102,6 @@ final class Installer
             flock($lock, LOCK_UN);
             fclose($lock);
         }
-        @unlink($private . '/install-password.php');
         if (is_file($private . '/install-token.txt')) {
             unlink($private . '/install-token.txt');
         }

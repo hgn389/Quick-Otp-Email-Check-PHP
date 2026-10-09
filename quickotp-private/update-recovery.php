@@ -43,7 +43,7 @@ final class UpdateRecovery
         if (preg_match('~^public_html/(?:[A-Za-z0-9_-]+\.(?:css|js|svg|png|ico)|index\.php|install\.php|\.htaccess|\.user\.ini)$~D', $path)) {
             return true;
         }
-        return preg_match('~^quickotp-private/(?:src/[^/].*|views/[^/].*|vendor/[^/].*|bootstrap\.php|update-recovery\.php|update-manifest\.json|schema\.sql|names\.json|composer\.json|composer\.lock|config\.example\.php|install-password\.example\.php)$~D', $path) === 1;
+        return preg_match('~^quickotp-private/(?:src/[^/].*|views/[^/].*|vendor/[^/].*|bootstrap\.php|update-recovery\.php|update-manifest\.json|schema\.sql|names\.json|composer\.json|composer\.lock|config\.example\.php)$~D', $path) === 1;
     }
 
     public static function target(string $root, string $relative, bool $flat = false): string

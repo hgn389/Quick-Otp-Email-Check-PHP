@@ -54,7 +54,7 @@ with tempfile.TemporaryDirectory(prefix='quickotp-php-package-') as temporary:
     for directory in ['src', 'views', 'vendor']:
         shutil.copytree(root / 'quickotp-private' / directory, private / directory,
                         ignore=shutil.ignore_patterns(*excluded_patterns))
-    for file in ['bootstrap.php', 'update-recovery.php', 'schema.sql', 'names.json', 'composer.json', 'composer.lock', 'config.example.php', 'install-password.example.php']:
+    for file in ['bootstrap.php', 'update-recovery.php', 'schema.sql', 'names.json', 'composer.json', 'composer.lock', 'config.example.php']:
         source = root / 'quickotp-private' / file
         assert source.is_file() and not source.is_symlink(), 'Invalid private source file'
         shutil.copyfile(source, private / file)

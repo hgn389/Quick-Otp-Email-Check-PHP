@@ -1,5 +1,13 @@
 # Changelog PHP
 
+## v1.0.0-beta-4 — 2026-10-10
+
+- Remove the separate installation password and its manual file/template setup. Fresh installations use database details and the chosen Admin password directly in the browser.
+- Retain same-origin/CSRF validation, form retention, installation locking, existing-database checks and private-directory protection.
+- Ignore obsolete local installation-password files without executing them; exclude legacy secrets from source packages.
+- Clarify root extraction ownership repair for both public_html and sibling private storage.
+- Update installer regressions, assets, footer version and installation documentation.
+
 ## v1.0.0-beta-3 — 2026-10-09
 
 - Fix split-directory detection when unrelated index.php/install.php files exist in the website home.

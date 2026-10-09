@@ -207,7 +207,7 @@ foreach (['1.0.0-beta-0', '1.0.0-beta-01', '1.0.0-beta-2/../'] as $invalidVersio
     check(!System::validVersion($invalidVersion), 'Invalid hyphen beta is rejected');
 }
 check(!\QuickOtp\UpdateRecovery::allowed('quickotp-private/install-password.php'), 'Updates cannot replace the installation secret');
-check(\QuickOtp\UpdateRecovery::allowed('quickotp-private/install-password.example.php'), 'Updates can include the empty installation template');
+check(!\QuickOtp\UpdateRecovery::allowed('quickotp-private/install-password.example.php'), 'Removed installation template is not an update target');
 $hyphenRelease = json_decode(str_replace('beta_2', 'beta-2', json_encode($betaRelease)), true);
 $hyphenRelease['prerelease'] = true;
 check(System::release([$hyphenRelease], '1.0.0-beta_1')['number'] === '1.0.0-beta-2', 'Current parser discovers hyphen releases from legacy version identifiers');

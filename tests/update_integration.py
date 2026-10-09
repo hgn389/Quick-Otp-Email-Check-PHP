@@ -18,7 +18,7 @@ def exercise_update(site, client, anonymous, admin_password, project):
     initial_history = client.request('GET', '/api/v1/history/page')[1]['total']
     assets = private / 'storage/test-update-assets'
     assets.mkdir(mode=0o700)
-    version = '1.0.0-beta-4'
+    version = '1.0.0-beta-5'
     package_name = f'Quick-Otp-Email-Check-PHP_v{version}'
     payload = {}
     for directory in ['public_html', 'quickotp-private/src', 'quickotp-private/views', 'quickotp-private/vendor']:
@@ -84,8 +84,8 @@ def exercise_update(site, client, anonymous, admin_password, project):
             assert anonymous.request('GET', '/health/ready')[0] == expected
             (assets / (phase + '-continue')).touch()
         code, result, _ = job.result()
-    assert code == 200 and result['version'] == 'v1.0.0-beta-4-php', result
-    assert client.request('GET', '/api/v1/system/status')[1]['version'] == 'v1.0.0-beta-4-php'
+    assert code == 200 and result['version'] == 'v1.0.0-beta-5-php', result
+    assert client.request('GET', '/api/v1/system/status')[1]['version'] == 'v1.0.0-beta-5-php'
     assert anonymous.request('GET', '/health/ready')[0] == 200
     assert (private / 'config.php').read_bytes() == original_config
     assert client.request('GET', '/api/v1/history/page')[1]['total'] == initial_history

@@ -1,10 +1,10 @@
 # CyberPanel installation and recovery
 
-## Upload-only installation (v1.0.0-beta-3)
+## Upload-only installation (v1.0.0-beta-4)
 
-Use `Quick-Otp-Email-Check-PHP_v1.0.0-beta-3-website.zip` and extract directly into **`/home/domain.com/`**, not `public_html`. The archive has no wrapper directory. Allow replacement of matching files so its `public_html/` merges into the existing website directory. It does not delete unrelated files. Keep the website document root at `/home/domain.com/public_html/`.
+Use `Quick-Otp-Email-Check-PHP_v1.0.0-beta-4-website.zip` and extract directly into **`/home/domain.com/`**, not `public_html`. The archive has no wrapper directory. Allow replacement of matching files so its `public_html/` merges into the existing website directory. It does not delete unrelated files. Keep the website document root at `/home/domain.com/public_html/`.
 
-Use SFTP or a file manager with access to the website home directory. If your panel only exposes `public_html`, use SFTP or the two-command SSH extraction in README. The package includes dependencies; Composer is not needed. Download the beta prerelease and checksums from the release link in README.
+Use SFTP or a file manager with access to the website home directory. If your panel only exposes `public_html`, use SFTP or the two-command SSH extraction in README. The package includes dependencies; Composer is not needed. Download the beta-4 website ZIP and checksums from the release links in README.
 
 The resulting files are:
 
@@ -24,7 +24,7 @@ The resulting files are:
 └── other installation documents
 ```
 
-Before opening setup, copy `/home/domain.com/quickotp-private/install-password.example.php` to `install-password.php` in the same directory and set your own unique password of at least 16 characters and at most 256 bytes in its final `return` statement. Keep the PHP access guard. Setup stays locked without a configured password. Create a database/user in CyberPanel, then open the website and enter the installation password, database settings and a separate Admin password. The password file is deleted after success and must never be published. Valid setup errors retain form entries.
+Create a database/user in CyberPanel, then open the website and enter the database settings and your chosen Admin password twice. No installation-password file, installation token or manual configuration editing is required. Valid setup errors retain form entries.
 
 Use PHP 8.3+ with `pdo_mysql`, `openssl`, `mbstring`, `iconv`, `zlib` and `curl`; add `zip` and `tokenizer` for updates. Grant the website's PHP user read/write access to both extracted application directories, especially private storage. If `open_basedir` is enabled, include `/home/domain.com/quickotp-private/`. Do not use `777`.
 
@@ -37,6 +37,8 @@ Delete the uploaded ZIP after extraction. Store backups outside the public docum
 ## Storage permissions and maintenance messages
 
 A maintenance message on a new installation can mean PHP cannot create or open `quickotp-private/storage/maintenance.lock`. For a fresh installation, check ownership and permissions for **both** `public_html` and its sibling `quickotp-private`, then retry setup. The panel's File Manager **Fix Permissions** action may help; verify that private storage outside `public_html` is writable as well. CyberPanel documents this action in its [permissions troubleshooting](https://cyberpanel.net/KnowledgeBase/home/how-to-fix-ssl-issues-in-cyberpanel/).
+
+If the ZIP was extracted as root, the files can remain root-owned even with mode 755/644; the website PHP user still cannot write to storage. Use the guarded ownership repair in [README](https://github.com/hgn389/Quick-Otp-Email-Check-PHP#setup-shows-a-maintenance-error-immediately-after-extraction), after verifying that public_html belongs to the website PHP user. The repair includes both directories and keeps private files at 600/private directories at 700. A panel repair limited to public_html does not repair its sibling. If ownership is already correct, inspect the website PHP error log and its open_basedir setting, filesystem mount and available disk/inodes; CLI PHP may use different settings.
 
 For an existing installation, inspect the owner and permissions of storage and its lock file using the website's PHP user; preserve restrictive permissions on configuration and runtime files. A leftover `update-pending.json` means source recovery is required. Keep the marker and use the matching `restore.php` described below. The existence of `maintenance.lock` alone does not imply maintenance: the operating-system lock is released when the worker exits.
 
@@ -60,6 +62,6 @@ For the previous layout inside the web document root, add `public_html/` before 
 
 Existing websites remain supported. To move private files outside the document root, follow the migration section in README: stop website requests, move the complete private directory with its configuration and storage, preserve permissions, then merge new application source and restart PHP/LSAPI. Do not run setup again or leave two copies of `quickotp-private`. The entry points reject two copies containing bootstrap.php to avoid using the wrong configuration.
 
-Fresh installations require `quickotp-private/install-password.php`. The old optional `install-token.txt` is replaced by this mandatory password mechanism. Existing installed websites keep `config.php` and do not run setup again.
+Fresh installations do not use `install-password.php` or `install-token.txt`. Files left over from previous versions are ignored. Existing installed websites keep `config.php` and do not run setup again.
 
 GitHub's Source code ZIP is a developer checkout without bundled dependencies. Use the ready-made website ZIP for browser installation. Building from source with Composer is documented in [DEVELOPMENT.md](https://github.com/hgn389/Quick-Otp-Email-Check-PHP/blob/main/DEVELOPMENT.md).

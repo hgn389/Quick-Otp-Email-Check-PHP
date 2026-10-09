@@ -1,15 +1,15 @@
-Quick OTP Mail PHP **v1.0.0-beta-3** — beta patch prerelease.
+Quick OTP Mail PHP **v1.0.0-beta-4** — beta prerelease.
 
-This patch fixes split-directory detection when the website home contains unrelated `index.php` or `install.php` files, allows standalone update recovery even when an entry point is missing, restores official beta release links on the System status page, and corrects blocked-login help for the PHP database implementation. CI uses Node 24 actions and Ubuntu 24.04 with regression checks for the fixes.
+Fresh setup no longer needs an installation password, token or manual PHP configuration edit. Extract the website ZIP, open the website, enter database details and choose the Admin password. Existing setup session/CSRF checks, installation locking and installed-configuration safeguards remain. Valid setup errors continue to retain form values.
 
-For a fresh CyberPanel website, download **Quick-Otp-Email-Check-PHP_v1.0.0-beta-3-website.zip** and extract into **`/home/domain.com/`**. There is no wrapper directory. Keep `public_html/` as the only document root, with `quickotp-private/` beside it. Set your own installation password in `quickotp-private/install-password.php` using the empty example before opening setup. See README for the full installation instructions.
-
-Existing beta-2 websites can use **System status → Check for updates → Update now**, with the current Admin password. Configuration, storage and database data are preserved. Beta_1 websites require the one-time manual update described in README. Do not run fresh setup on an existing database.
+For a new website, use `Quick-Otp-Email-Check-PHP_v1.0.0-beta-4-website.zip` and extract at `/home/domain.com/`, keeping `public_html/` as the only document root and `quickotp-private/` beside it. When extracting as root, set both directories to the website PHP user as documented in README.
 
 Downloads:
 
-- `Quick-Otp-Email-Check-PHP_v1.0.0-beta-3-website.zip`: bundled dependencies, no wrapper; fresh installation into the website home.
-- `Quick-Otp-Email-Check-PHP_v1.0.0-beta-3.zip`: canonical package used by the built-in updater.
+- `Quick-Otp-Email-Check-PHP_v1.0.0-beta-4-website.zip`: bundled dependencies; no wrapper; fresh installation.
+- `Quick-Otp-Email-Check-PHP_v1.0.0-beta-4.zip`: canonical source-update package.
 - `checksums-php.txt`: SHA-256 checksums for both ZIPs.
 
-Earlier releases and their downloads remain available for historical reference. Runtime configuration, installation passwords, databases and backups are excluded from both packages.
+Configuration, databases, runtime storage and legacy installation secrets are excluded from packages. Existing websites preserve configuration and data and must not run fresh setup again.
+
+Existing beta-2/beta-3 websites can use **System status → Check for updates → Update now** with their current Admin password. Beta_1 websites need the one-time manual source update documented in README.

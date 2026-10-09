@@ -80,29 +80,27 @@ def fixture(site, action, data=None):
     return result.stdout
 
 
-def exercise(site, base, database, install_password):
+def exercise(site, base, database):
     anonymous = Client(base)
     assert anonymous.request('GET', '/')[0] == 303
     code, html, headers = anonymous.request('GET', '/install.php')
-    assert code == 200 and b'name="install_password"' in html
+    assert code == 200 and b'name="install_password"' not in html
+    assert not (site / 'quickotp-private/install-password.php').exists(), 'Fresh setup must work without a password file'
     assert headers['Referrer-Policy'] == 'same-origin'
     assert b'disabled' not in html, html.decode()
     application_version = re.search(r"VERSION = '([^']+)'", (site / 'quickotp-private/src/System.php').read_text()).group(1)
     assert ('Quick OTP Mail · v' + application_version + '-php').encode() in html, 'Installer footer must match application version'
     csrf = re.search(rb'name="csrf" value="([a-f0-9]{64})"', html).group(1).decode()
-    form = dict(database, csrf=csrf, install_password=install_password, admin_password=ADMIN, admin_password_confirm=ADMIN)
+    form = dict(database, csrf=csrf, admin_password=ADMIN, admin_password_confirm=ADMIN)
     code, failed, _ = anonymous.request('POST', '/install.php', form={**form, 'csrf': 'wrong'})
     assert code == 403 and database['db_password'].encode() not in failed
-    code, failed, _ = anonymous.request('POST', '/install.php', form={**form, 'db_host': 'invalid;dsn', 'install_password': 'wrong-install-password-1234567890'})
-    assert code == 403, 'Installation password must be checked before database input'
-    assert 'Mật khẩu cài đặt không đúng'.encode() in failed
     code, failed, _ = anonymous.request('POST', '/install.php', form=form, headers={'Origin': 'https://untrusted.example'})
     assert code == 403 and database['db_password'].encode() not in failed
     for invalid in [{'admin_password_confirm': 'Synthetic-does-not-match!'}, {'db_password': 'Synthetic-wrong-db-password'}]:
         submitted = {**form, **invalid}
         code, failed, headers = anonymous.request('POST', '/install.php', form=submitted)
         assert code == 400 and 'no-store' in headers['Cache-Control']
-        for name in ['install_password', 'db_host', 'db_port', 'db_name', 'db_user', 'db_password', 'admin_password', 'admin_password_confirm']:
+        for name in ['db_host', 'db_port', 'db_name', 'db_user', 'db_password', 'admin_password', 'admin_password_confirm']:
             field = re.search(rb'<input[^>]*name="' + name.encode() + rb'"[^>]*value="([^"]*)"', failed)
             assert field and html_tools.unescape(field.group(1).decode()) == str(submitted[name]), name
     injected = {**form, 'db_name': '\"><script>alert(1)</script>'}
@@ -212,7 +210,7 @@ def exercise(site, base, database, install_password):
         statuses = list(executor.map(fail_login, range(5)))
     assert sorted(statuses) == [401, 401, 401, 401, 403]
     assert Client(base).request('POST', '/api/v1/auth/login', {'username': 'admin', 'password': NEW_ADMIN})[0] == 403
-    print('PASS: PHP web installation, private files, authentication/CSRF/session rotation, pagination, encrypted mail settings, exact recipient mail lookup, installation password/form retention, removed backup endpoints, header links, expired sessions and concurrent login blocking.')
+    print('PASS: PHP web installation, private files, authentication/CSRF/session rotation, pagination, encrypted mail settings, exact recipient mail lookup, password-free setup/form retention, removed backup endpoints, header links, expired sessions and concurrent login blocking.')
 
 
 def main():
@@ -250,8 +248,6 @@ def main():
             shutil.copytree(PROJECT, site, ignore=shutil.ignore_patterns('config.php', 'install-password.php', 'install-token.txt', 'storage', 'dist', '__pycache__'))
         (site / 'quickotp-private/storage').mkdir(mode=0o700, exist_ok=True)
         public = site if (site / 'index.php').exists() else site / 'public_html'
-        token = secrets.token_hex(24)
-        (site / 'quickotp-private/install-password.php').write_text("<?php\nif (PHP_SAPI !== 'cli' && !defined('QUICKOTP_RUNTIME')) { http_response_code(403); exit; }\nreturn '" + token + "';\n")
         mysql = None
         php = None
         log = open(root / 'servers.log', 'wb')
@@ -303,7 +299,7 @@ def main():
                 time.sleep(.1)
             else:
                 raise RuntimeError('PHP web installer not ready')
-            exercise(site, base, database, token)
+            exercise(site, base, database)
         except Exception:
             log.flush()
             # Print only server error classes/locations, never configuration or form values.
