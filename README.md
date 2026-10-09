@@ -9,9 +9,19 @@ A PHP email and OTP dashboard for CyberPanel Free, OpenLiteSpeed and Apache, usi
 Use this version for new installations. Earlier releases remain available for historical reference; beta-3 and earlier used the previous installation-password step. Do not use GitHub's **Source code (zip)** for upload-only installation.
 
 1. Create a website, enable SSL and create a MySQL/MariaDB database in CyberPanel. Select **PHP 8.3 or later**. Keep the website document root at `/home/domain.com/public_html/`.
-2. Upload **`Quick-Otp-Email-Check-PHP_v1.0.0-beta-4-website.zip`** into **`/home/domain.com/`**, then extract it **there**, allowing replacement of application files with the same names. Use SFTP or a file manager that can access the website's home directory. Keep hidden `.htaccess` files and delete the uploaded ZIP afterwards. The archive merges its `public_html/` into the existing directory and places `quickotp-private/` beside it. It does not add a version-named wrapper.
+2. Upload **`Quick-Otp-Email-Check-PHP_v1.0.0-beta-4-website.zip`** into **`/home/domain.com/`**, then extract it **there**, allowing replacement of application files with the same names. Use the website-specific File Manager or upload with the website account, as described below. Keep hidden `.htaccess` files and delete the uploaded ZIP afterwards. The archive merges its `public_html/` into the existing directory and places `quickotp-private/` beside it. It does not add a version-named wrapper.
 3. Open **`https://domain.com/`**. Enter the database details and your chosen Admin password twice. Database host is normally `localhost`; database port is normally `3306`.
 4. Click **Install**, then log in with **`admin`** and the Admin password you just chose. In **Settings**, add your email domains and configure IMAP/App Password.
+
+**Extracting through SSH as root?** Root-owned files can prevent setup from opening and cause `storage_unavailable`. Read the [storage permissions fix](#setup-shows-a-maintenance-error-immediately-after-extraction) before continuing. For a fresh installation without Terminal, follow the website File Manager steps below.
+
+### Install without Terminal
+
+In CyberPanel, open **Websites → List Websites → Manage** for the domain, then its **File Manager**. Navigate to `/home/domain.com/`, upload the website ZIP and extract it into that same directory. Wait until extraction finishes, delete the uploaded ZIP, then open `https://domain.com/` and complete the form. Use the domain's File Manager, rather than a server-wide root File Manager, so extraction runs as the website account. CyberPanel's [website extraction implementation](https://github.com/usmannasir/cyberpanel/blob/stable/filemanager/filemanager.py) selects the website's PHP user for this operation.
+
+If your File Manager cannot access the website home or cannot extract there, unzip the package on your computer. Upload its `public_html/` contents to `/home/domain.com/public_html/` and its `quickotp-private/` directory to `/home/domain.com/quickotp-private/` using a file-transfer account that writes as the website's PHP user. SFTP works only if SSH access is enabled for that account. Keep hidden files. An FTP account restricted to `public_html` cannot upload the sibling private directory; use the website File Manager or ask your host for access.
+
+This workflow needs no Terminal commands, Composer or separate installation password. It applies to a new website where the website account can create both directories. Uploading or extracting as root can recreate the ownership problem; PHP cannot automatically change the owner of root-owned files. Existing root-owned directories need a hosting administrator's ownership repair before they can be reused.
 
 Choose **`/home/domain.com/` itself** as the extraction destination. Turn off any option that creates a folder named after the ZIP. After extraction:
 
@@ -31,7 +41,7 @@ Choose **`/home/domain.com/` itself** as the extraction destination. Turn off an
 
 `public_html` remains the only web document root. Configuration, libraries, templates and storage stay outside it. Extraction replaces matching files and keeps unrelated existing files; it does not delete and recreate `public_html`. Use a new, dedicated website for initial setup.
 
-If you prefer SSH, after uploading the website ZIP to `/home/domain.com/`, run:
+If you prefer SSH, log in as the website's PHP user (with SSH access enabled), then upload the website ZIP to `/home/domain.com/` and run:
 
 ```bash
 cd /home/domain.com/
@@ -70,7 +80,17 @@ Cloudflare can remain enabled. Use **Full (strict)** with a valid certificate on
 
 ### Setup shows a maintenance error immediately after extraction
 
-`storage_unavailable` means PHP could not create/open `quickotp-private/storage/maintenance.lock`. A common cause is extracting the ZIP as root: the PHP website user cannot write to the root-owned private directory. CyberPanel's **File Manager → Fix Permissions** may fix `public_html`; also verify its sibling `quickotp-private`, which is outside that directory.
+The page may return this error instead of the installation form (the message is currently in Vietnamese):
+
+```json
+{"error":"PHP không mở/tạo được quickotp-private/storage/maintenance.lock. Kiểm tra chủ sở hữu, quyền ghi và dung lượng đĩa. Nếu vừa cài mới, mở File Manager của website trong CyberPanel và bấm Fix Permissions, rồi tải lại trang.","code":"storage_unavailable"}
+```
+
+`storage_unavailable` means PHP could not create/open `quickotp-private/storage/maintenance.lock`. A common cause is extracting the ZIP as root: the PHP website user cannot write to the root-owned private directory. CyberPanel's **File Manager → Fix Permissions** repairs `public_html` but may leave its sibling `quickotp-private` unchanged. For future fresh installations, use the [no-Terminal workflow above](#install-without-terminal) to create the private directory as the website user from the start.
+
+Directory mode `755` lets the website user read root-owned files but does not let it create files in a root-owned directory. Changing permissions to `755` again will not fix the owner. PHP runs with the website user's privileges and cannot change ownership of root-owned files, so the application cannot repair this automatically from a button in the browser.
+
+**If the files are already root-owned:** ask your hosting administrator to set both application directories to the website's PHP user, or use the root SSH repair below. The standard Fix Permissions action may not cover the private directory outside `public_html`. Do not delete configuration/storage, reinstall the database or manually create an empty lock file to bypass this error.
 
 For a fresh installation, first confirm in CyberPanel that the owner of `public_html` is the website's PHP user. Then SSH as root and run the following, replacing `domain.com`. The commands stop if `public_html` is still root-owned; correct its owner in the panel before continuing. They change ownership/permissions without deleting configuration, storage or lock files:
 
@@ -90,7 +110,17 @@ For a fresh installation, first confirm in CyberPanel that the owner of `public_
 )
 ```
 
-Reload `/install.php`. Do not use `777`. If ownership already matches the PHP user and the error remains, check the website's PHP error log for `open_basedir` restrictions, a read-only filesystem or disk/inode exhaustion. Allow `/home/domain.com/quickotp-private/` in the website's `open_basedir` configuration when enabled, retaining other required allowed paths. The CLI PHP configuration can differ from the website's PHP configuration.
+Reload `/install.php` after the repair. PHP creates `maintenance.lock` automatically when storage is writable; a missing lock file on a fresh installation is expected. Ownership repair normally needs to be done only once, but uploading/extracting as root again can recreate the problem. Do not use `777`. If the repair was already applied and the error remains, compare the actual website PHP process user with the owners of **both storage and its existing lock file**, rather than repeating chmod. Run these read-only checks from the website home:
+
+```bash
+pwd
+stat -c '%U:%G mode=%a %n' public_html quickotp-private quickotp-private/storage quickotp-private/storage/maintenance.lock
+ps -eo user,group,comm | awk '$3 ~ /lsphp/ {print}'
+df -h .
+df -i .
+```
+
+A missing lock file means PHP must be able to create it in storage; an existing lock needs read/write access for the website PHP user. On servers hosting several websites, process output can show several PHP users: confirm the correct site's PHP/SuEXEC user in its hosting configuration before changing ownership. The owner of public_html alone does not establish that user. Check the website's PHP error log for `open_basedir` restrictions, a read-only filesystem or disk/inode exhaustion. Allow `/home/domain.com/quickotp-private/` in the website's `open_basedir` configuration when enabled, retaining other required allowed paths. The CLI PHP configuration can differ from the website's PHP configuration.
 
 If the message appeared after an update, check whether `quickotp-private/storage/update-pending.json` exists and follow the recovery instructions in CYBERPANEL.md. Do not remove this marker or delete lock files while an update may be running.
 
