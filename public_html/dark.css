@@ -1,0 +1,13 @@
+/* Shared deeper dark palette for the dashboard and Quick OTP. */
+body.dark{color-scheme:dark;--ink:#eef2fa;--muted:#abb5c6;--line:#242d3c;--surface:#111722;--canvas:#080c13;--shadow:none;background:var(--canvas);color:var(--ink)}
+body.dark .sidebar,body.dark .topbar{background:#0d121b}
+body.dark .nav-item:hover,body.dark .nav-count,body.dark .help-card,body.dark .domain-wrap,body.dark .email-input-wrap,body.dark .generator-options select,body.dark .prefix-input,body.dark .secondary-button,body.dark .otp-copy,body.dark .icon-button,body.dark .quiet-button,body.dark .stop-button,body.dark .setting-field input,body.dark .setting-field select{background:#151d2a;border-color:#2b3647;color:#dde5f2}
+body.dark .domain-wrap input,body.dark .email-input-wrap input{color:#e2eaf6}
+body.dark .nav-item.active{background:#1c2945;color:#b3c2ff}
+body.dark .generated-box{background:#121b2e;border-color:#33456c}
+body.dark .profile,body.dark .watch-status,body.dark .demo-note,body.dark .recent-item{border-color:var(--line)}
+body.dark .breadcrumbs strong,body.dark .watch-status strong,body.dark .recent-item,body.dark .empty-list strong,body.dark .update-state{color:#c5cfdf}
+body.dark .empty-symbol,body.dark .status-orb{background:#1a2332;color:#bac6d8}
+body.dark .notice,body.dark .settings-note{background:#241f16}
+body.dark .notice p,body.dark .settings-note p{color:#d4bd94}
+body.dark .update-state.error{color:#f59a9a}body.dark .update-state.success{color:#83d5ad}

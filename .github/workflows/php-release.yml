@@ -1,0 +1,37 @@
+name: Release PHP installer
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_mysql, openssl, mbstring, iconv, curl, zlib, pcntl, zip, tokenizer
+          tools: composer:v2
+          coverage: none
+      - name: Install, audit and test
+        run: |
+          test "$GITHUB_REF_NAME" = "v$(cat VERSION)"
+          composer install --working-dir=quickotp-private --no-dev --prefer-dist --no-interaction --no-progress --optimize-autoloader
+          composer audit --working-dir=quickotp-private --no-dev
+          find public_html quickotp-private tests tools -name '*.php' -print0 | xargs -0 -n1 php -l
+          php tests/unit.php
+          php tests/updater.php
+      - name: Build installer ZIP
+        run: python3 tools/package.py
+      - name: Publish PHP Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          release_flags=(--latest=true)
+          if [[ "$GITHUB_REF_NAME" == *-beta_* ]]; then
+            release_flags=(--prerelease --latest=false)
+          fi
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || gh release create "$GITHUB_REF_NAME" "${release_flags[@]}" --notes-file RELEASE_NOTES.md --title "Quick OTP Mail PHP ${GITHUB_REF_NAME}"
+          gh release upload "$GITHUB_REF_NAME" dist/Quick-Otp-Email-Check-PHP_*.zip dist/checksums-php.txt --clobber

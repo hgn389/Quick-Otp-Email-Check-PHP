@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#080c13">
+  <title>Quick OTP</title>
+  <link rel="stylesheet" href="/quick-otp.css?v=php-1.0.0-beta_1">
+  <link rel="stylesheet" href="/dark.css?v=php-1.0.0-beta_1">
+  <script src="/quick-otp.js?v=php-1.0.0-beta_1" defer></script>
+</head>
+<body>
+  <main class="quick-shell">
+    <header class="quick-heading">
+      <div class="quick-brand"><span class="quick-logo" aria-hidden="true">⚡</span><div><h1>Quick OTP</h1><p>Tạo địa chỉ · Đọc thư · Copy nhanh</p></div></div>
+      <nav class="quick-navigation" aria-label="Điều hướng"><a href="/">Trang chủ</a><a href="/settings.html">Setting</a></nav>
+    </header>
+    <section class="quick-card" aria-labelledby="generatorTitle">
+      <div class="card-heading"><span class="step">01</span><h2 id="generatorTitle">Tạo email</h2></div>
+      <form id="generateForm">
+        <div class="generator-grid">
+          <div class="generator-field">
+            <label for="generatorType">Thư viện username</label>
+            <select id="generatorType">
+              <option value="vietnamese_name_number">Việt Nam — họ + tên + số</option>
+              <option value="usa_name_number">USA — tên + họ + số</option>
+              <option value="canada_name_number">Canada — tên + họ + số</option>
+              <option value="random_username">Username ngẫu nhiên</option>
+              <option value="random_letters_number">Chữ cái + số</option>
+              <option value="random_crypto">Kiểu ví Crypto — 16 ký tự</option>
+              <option value="custom_prefix">Tiền tố riêng + số</option>
+            </select>
+          </div>
+          <div class="generator-field">
+            <label for="domain">Tên miền email</label>
+            <select id="domain" required disabled><option value="">Đang tải tên miền…</option></select>
+          </div>
+        </div>
+        <div id="prefixField" hidden><label for="prefix">Tiền tố</label><input id="prefix" placeholder="Nhập tiền tố" autocapitalize="none" spellcheck="false" maxlength="55"></div>
+        <button class="primary generate-button" id="generateButton" type="submit" disabled>Tạo mới</button>
+      </form>
+      <div class="address-result"><div><span class="caption">ĐỊA CHỈ VỪA TẠO</span><output id="generatedEmail">Chưa tạo địa chỉ</output></div><button id="copyEmail" class="secondary" type="button" disabled>Copy</button></div>
+      <p class="hint">Tên miền cần có alias hoặc catch-all để địa chỉ nhận được thư.</p>
+    </section>
+    <section class="quick-card" aria-labelledby="mailTitle">
+      <div class="card-heading"><span class="step">02</span><h2 id="mailTitle">Nội dung email</h2></div>
+      <label for="viewEmail">Địa chỉ cần xem</label>
+      <input id="viewEmail" type="email" placeholder="Tạo email hoặc nhập địa chỉ" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="254">
+      <p id="mailStatus" class="mail-status" role="status">Nhập địa chỉ để xem thư mới nhất.</p>
+      <article class="message-view" aria-label="Thư mới nhất">
+        <div id="mailEmpty" class="mail-empty"><span aria-hidden="true">✉</span><p>Thư mới nhất sẽ hiển thị tại đây.</p></div>
+        <div id="mailContent" hidden>
+          <h3 id="mailSubject"></h3>
+          <dl class="mail-meta"><dt>Từ</dt><dd id="mailSender"></dd><dt>Đến</dt><dd id="mailRecipient"></dd><dt>Lúc</dt><dd id="mailTime"></dd></dl>
+          <div id="otpBlock" class="otp-block" hidden><span class="caption">MÃ OTP</span><strong id="mailOtp"></strong></div>
+          <div id="mailBody" class="mail-body"></div>
+        </div>
+      </article>
+      <div class="mail-actions"><button id="refreshMail" type="button" class="primary" disabled>Xem / Làm mới</button><button id="copyOtp" type="button" class="secondary" disabled>Copy OTP</button></div>
+    </section>
+  </main>
+  <footer class="quick-footer app-footer"><span>© 2026 Quick OTP Mail</span><span aria-hidden="true">-</span><span id="appVersion" aria-label="Phiên bản ứng dụng">Đang tải phiên bản…</span></footer>
+  <div id="toast" class="quick-toast" role="status"></div>
+<script src="/footer.js?v=php-1.0.0-beta_1" defer></script>
+</body>
+</html>

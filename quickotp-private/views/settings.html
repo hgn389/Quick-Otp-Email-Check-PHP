@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#080c13"><title>Settings · Quick OTP Mail</title>
+  <link rel="stylesheet" href="/app.css?v=php-1.0.0-beta_1">
+  <link rel="stylesheet" href="/workspace.css?v=php-1.0.0-beta_1-update">
+  <link rel="stylesheet" href="/dark.css?v=php-1.0.0-beta_1">
+</head>
+<body><div class="shell">
+  <aside class="sidebar" id="sidebar">
+    <a class="brand" href="#"><span class="brand-mark"><svg viewBox="0 0 24 24"><path d="M3 6.5 12 13l9-6.5M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z"/></svg><i></i></span><span>quick<span class="brand-light">otp</span><small>MAIL WORKSPACE</small></span></a>
+    <div class="workspace-label">WORKSPACE</div>
+    <nav class="nav">
+      <a class="nav-item" href="/"><span class="nav-icon">▦</span>Dashboard</a>
+      <a class="nav-item" href="/quick-otp.html"><span class="nav-icon">⚡</span>Quick OTP</a>
+      <a class="nav-item" href="/#history"><span class="nav-icon">◷</span>History</a>
+    </nav>
+    <div class="workspace-label nav-secondary-label">PREFERENCES</div>
+    <nav class="nav"><a class="nav-item active" href="/settings.html"><span class="nav-icon">⚙</span>Settings</a><a class="nav-item" href="/system.html"><span class="nav-icon">⌁</span>System status</a><a class="nav-item" href="/backup.html"><span class="nav-icon" aria-hidden="true">⇅</span>Backup &amp; Restore</a><button class="nav-item nav-button" id="logoutBtn" type="button"><span class="nav-icon">↪</span>Logout</button></nav>
+    <div class="sidebar-bottom"><div class="profile"><div class="avatar">A</div><div><strong>Admin</strong><small>Administrator</small></div><a class="dots" href="/settings.html#user" aria-label="Cài đặt tài khoản User" title="Tài khoản và đổi mật khẩu">···</a></div></div>
+  </aside>
+  <main class="main">
+    <header class="topbar"><button class="mobile-menu" id="menuToggle" aria-label="Open menu">☰</button><div class="breadcrumbs">Workspace <span>/</span> <strong>Settings</strong></div><div class="top-actions"><button class="icon-button theme-toggle" id="themeToggle" aria-label="Toggle theme">◐</button><a class="top-avatar" href="/settings.html#user" aria-label="Tài khoản Admin" title="Tài khoản và đổi mật khẩu">A</a></div></header>
+    <div class="content">
+      <div class="page-heading"><div><h1>Settings</h1><p>Quản lý giao diện, kết nối hộp thư và bộ tạo email theo từng tab.</p></div></div>
+      <div class="settings-tabs" role="tablist" aria-label="Cài đặt">
+        <button type="button" id="generalTab" role="tab" aria-selected="true" aria-controls="general">Cài đặt chung</button>
+        <button type="button" id="mailTab" role="tab" aria-selected="false" aria-controls="mail" tabindex="-1">Kết nối email</button>
+        <button type="button" id="generatorTab" role="tab" aria-selected="false" aria-controls="generator" tabindex="-1">Tạo email / Username</button>
+        <button type="button" id="userTab" role="tab" aria-selected="false" aria-controls="user" tabindex="-1">User</button>
+      </div>
+      <section class="panel settings-panel" id="general" role="tabpanel" aria-labelledby="generalTab" tabindex="0">
+        <div class="settings-heading"><span class="setup-kicker">GENERAL</span><h2>Cài đặt chung</h2><p>Chọn chế độ giao diện cho toàn bộ workspace và Quick OTP.</p></div>
+        <form id="generalForm" class="settings-form">
+          <div class="settings-grid">
+            <label class="setting-field"><span>GIAO DIỆN</span><select id="settingAppearance"><option value="system">Theo hệ thống</option><option value="light">Sáng</option><option value="dark">Tối</option></select><small>Thay đổi được xem trước ngay; bấm Lưu để áp dụng cho các lần truy cập sau.</small></label>
+          </div>
+          <div class="settings-actions"><span id="generalSavedAt" class="settings-saved" role="status">Đang tải cấu hình…</span><button type="submit" class="primary-button" id="saveGeneralBtn" disabled>Lưu cài đặt chung</button></div>
+        </form>
+      </section>
+      <section class="panel settings-panel" id="mail" role="tabpanel" aria-labelledby="mailTab" tabindex="0" hidden>
+        <div class="settings-heading"><span class="setup-kicker">EMAIL CONNECTION</span><h2 id="mailTitle">Email Config – Connect</h2><p>Kết nối hộp thư chính nhận email từ các alias hoặc catch-all.</p></div>
+        <form id="mailForm" class="settings-form">
+          <div class="settings-grid">
+            <label class="setting-field"><span>PROVIDER</span><select id="mailProvider"><option value="yandex">Yandex Mail</option><option value="custom">Custom IMAP</option></select></label>
+            <label class="setting-field"><span>IMAP HOST</span><input id="mailHost" required placeholder="imap.yandex.com" autocomplete="off" autocapitalize="none"></label>
+            <label class="setting-field"><span>IMAP PORT</span><input id="mailPort" type="number" min="1" max="65535" value="993" required></label>
+            <label class="setting-field"><span>USERNAME / MAILBOX CHÍNH</span><input id="mailUsername" required autocomplete="off" autocapitalize="none" placeholder="Username đăng nhập hộp thư"></label>
+            <label class="setting-field"><span>APP PASSWORD</span><input id="mailPassword" type="password" autocomplete="new-password" placeholder="Nhập mật khẩu ứng dụng" aria-describedby="passwordHint"><small id="passwordHint">Mật khẩu được mã hóa khi lưu.</small></label>
+            <label class="setting-field"><span>FOLDER</span><input id="mailFolder" required value="INBOX" autocomplete="off"></label>
+          </div>
+          <p class="dashboard-hint">TLS được bật bắt buộc. Với Yandex, bật IMAP và tạo App Password; các alias cần chuyển thư vào hộp thư chính này.</p>
+          <p class="settings-note-text">Kiểm tra kết nối xác minh TLS, đăng nhập và mở folder. Dashboard và Quick OTP tải thư từ IMAP khi kiểm tra hoặc theo dõi.</p>
+          <div id="mailResult" class="form-result" role="status">Đang tải cấu hình email…</div>
+          <div class="settings-actions"><button id="testMailBtn" type="button" class="secondary-button" disabled>Kiểm tra kết nối</button><button id="saveMailBtn" type="submit" class="primary-button" disabled>Lưu Email Config</button></div>
+        </form>
+      </section>
+      <section class="panel settings-panel" id="generator" role="tabpanel" aria-labelledby="generatorTab" tabindex="0" hidden>
+        <div class="settings-heading generator-heading">
+          <div><span class="setup-kicker">GENERATOR</span><h2 id="settingsTitle">Gen Email Username Setting</h2><p>Đặt mặc định cho Dashboard và Quick OTP.</p></div>
+          <button type="submit" form="settingsForm" class="primary-button" id="saveSettingsBtn" disabled>Lưu Gen Email Username</button>
+        </div>
+        <form id="settingsForm" class="settings-form">
+          <div class="generator-settings-grid">
+            <div class="generator-user-settings">
+            <label class="setting-field"><span>THƯ VIỆN USERNAME</span><select id="settingGenerator"><option value="vietnamese_name_number">Việt Nam — họ + tên + số</option><option value="usa_name_number">USA — tên + họ + số</option><option value="canada_name_number">Canada — tên + họ + số</option><option value="random_username">Username ngẫu nhiên</option><option value="random_letters_number">Chữ cái + số</option><option value="random_crypto">Chuỗi ngẫu nhiên kiểu ví Crypto — 16 ký tự</option><option value="custom_prefix">Tiền tố riêng + số</option></select></label>
+            <label class="setting-field" id="settingPrefixField" hidden><span>TIỀN TỐ MẶC ĐỊNH</span><input id="settingPrefix" maxlength="55" autocomplete="off" placeholder="Ví dụ: minhanh"></label>
+          <div class="setting-toggles">
+            <label class="toggle-row"><input type="checkbox" id="settingAutoFill"><span><strong>Tự điền địa chỉ vừa tạo</strong><small>Điền vào mục Check Email / OTP trên Dashboard.</small></span></label>
+            <label class="toggle-row"><input type="checkbox" id="settingAutoWatch"><span><strong>Tự theo dõi sau khi tạo</strong><small>Kiểm tra OTP đã lưu mỗi 10 giây trên Dashboard.</small></span></label>
+          </div>
+            </div>
+            <div class="setting-field domain-settings">
+              <label for="settingDomain">DOMAIN MẶC ĐỊNH</label>
+              <select id="settingDomain" required aria-describedby="domainHint"></select>
+              <small id="domainHint">Chọn domain dùng mặc định trên Dashboard và Quick OTP.</small>
+              <label for="newDomain">Thêm tên miền vào danh sách</label>
+              <div class="domain-add-row"><input id="newDomain" placeholder="example.com" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="253" aria-describedby="domainResult"><button id="addDomainBtn" type="button" class="secondary-button" aria-label="Thêm domain">+</button></div>
+              <span id="domainResult" class="domain-result" role="status"></span>
+              <ul id="domainList" class="domain-list" aria-label="Danh sách domain mặc định"></ul>
+              <nav id="domainPagination" class="pagination" aria-label="Phân trang danh sách tên miền"></nav>
+            </div>
+          </div>
+          <div class="settings-actions"><span id="settingsSavedAt" class="settings-saved" role="status">Đang tải cấu hình…</span></div>
+        </form>
+      </section>
+      <section class="panel settings-panel" id="user" role="tabpanel" aria-labelledby="userTab" tabindex="0" hidden>
+        <div class="settings-heading"><span class="setup-kicker">ACCOUNT</span><h2>User</h2><p>Quản lý mật khẩu đăng nhập của tài khoản đang sử dụng.</p></div>
+        <form id="userPasswordForm" class="settings-form">
+          <div class="settings-grid user-password-grid">
+            <label class="setting-field"><span>TÀI KHOẢN</span><input id="userUsername" name="username" autocomplete="username" readonly></label>
+            <label class="setting-field"><span>MẬT KHẨU HIỆN TẠI</span><input id="userCurrentPassword" name="currentPassword" type="password" autocomplete="current-password" required maxlength="72"></label>
+            <label class="setting-field"><span>MẬT KHẨU MỚI</span><input id="userNewPassword" name="newPassword" type="password" autocomplete="new-password" required minlength="10" maxlength="72" aria-describedby="userPasswordHint"></label>
+            <label class="setting-field"><span>NHẬP LẠI MẬT KHẨU MỚI</span><input id="userConfirmPassword" name="confirmPassword" type="password" autocomplete="new-password" required minlength="10" maxlength="72"></label>
+          </div>
+          <p id="userPasswordHint" class="dashboard-hint">Mật khẩu mới tối thiểu 10 ký tự và khác mật khẩu hiện tại. Các phiên đăng nhập khác sẽ hết hiệu lực sau khi đổi.</p>
+          <div id="userPasswordResult" class="form-result" role="status"></div>
+          <div class="settings-actions"><button id="changeUserPasswordBtn" class="primary-button" type="submit" disabled>Đổi mật khẩu</button></div>
+        </form>
+      </section>
+      <footer class="app-footer"><span>© 2026 Quick OTP Mail</span><span aria-hidden="true">-</span><span id="appVersion" aria-label="Phiên bản ứng dụng">Đang tải phiên bản…</span></footer>
+    </div>
+  </main>
+</div><div class="toast" id="toast" role="status"></div>
+<script src="/workspace.js?v=php-1.0.0-beta_1-update" defer></script><script src="/pagination.js?v=php-1.0.0-beta_1" defer></script><script src="/settings.js?v=php-1.0.0-beta_1" defer></script>
+<script src="/footer.js?v=php-1.0.0-beta_1" defer></script>
+</body></html>

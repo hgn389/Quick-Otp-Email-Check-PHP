@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#080c13"><title>Dashboard · Quick OTP Mail</title>
+  <link rel="stylesheet" href="/app.css?v=php-1.0.0-beta_1">
+  <link rel="stylesheet" href="/workspace.css?v=php-1.0.0-beta_1-update">
+  <link rel="stylesheet" href="/dark.css?v=php-1.0.0-beta_1">
+</head>
+<body><div class="shell">
+  <aside class="sidebar" id="sidebar">
+    <a class="brand" href="#"><span class="brand-mark"><svg viewBox="0 0 24 24"><path d="M3 6.5 12 13l9-6.5M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z"/></svg><i></i></span><span>quick<span class="brand-light">otp</span><small>MAIL WORKSPACE</small></span></a>
+    <div class="workspace-label">WORKSPACE</div>
+    <nav class="nav">
+      <a class="nav-item active" href="/"><span class="nav-icon">▦</span>Dashboard</a>
+      <a class="nav-item" href="/quick-otp.html"><span class="nav-icon">⚡</span>Quick OTP</a>
+      <a class="nav-item" href="/#history"><span class="nav-icon">◷</span>History</a>
+    </nav>
+    <div class="workspace-label nav-secondary-label">PREFERENCES</div>
+    <nav class="nav"><a class="nav-item" href="/settings.html"><span class="nav-icon">⚙</span>Settings</a><a class="nav-item" href="/system.html"><span class="nav-icon">⌁</span>System status</a><a class="nav-item" href="/backup.html"><span class="nav-icon" aria-hidden="true">⇅</span>Backup &amp; Restore</a><button class="nav-item nav-button" id="logoutBtn" type="button"><span class="nav-icon">↪</span>Logout</button></nav>
+    <div class="sidebar-bottom"><div class="profile"><div class="avatar">A</div><div><strong>Admin</strong><small>Administrator</small></div><a class="dots" href="/settings.html#user" aria-label="Cài đặt tài khoản User" title="Tài khoản và đổi mật khẩu">···</a></div></div>
+  </aside>
+  <main class="main">
+    <header class="topbar"><button class="mobile-menu" id="menuToggle" aria-label="Open menu">☰</button><div class="breadcrumbs">Workspace <span>/</span> <strong>Dashboard</strong></div><div class="top-actions"><button class="icon-button theme-toggle" id="themeToggle" aria-label="Toggle theme">◐</button><a class="top-avatar" href="/settings.html#user" aria-label="Tài khoản Admin" title="Tài khoản và đổi mật khẩu">A</a></div></header>
+    <div class="content">
+      <div class="page-heading"><div><div class="eyebrow" id="currentDate"></div><h1>Dashboard</h1><p>Tạo địa chỉ và kiểm tra mã OTP nhanh.</p></div><button class="quiet-button" id="refreshBtn" aria-label="Làm mới Dashboard" title="Làm mới Dashboard"><span>↻</span> Làm mới</button></div>
+      <div class="dashboard-summary"><span>Địa chỉ tạo hôm nay <strong id="addressStat">0</strong></span><span id="mailConnectionStatus">Đang tải cấu hình…</span><a href="/settings.html#mail">Email Config →</a></div>
+      <section class="action-grid">
+        <article class="panel generator-panel">
+          <div class="panel-head"><div class="panel-icon generator-icon">✳</div><div><h3>Gen Email Username</h3><p>Tạo địa chỉ theo cấu hình đã lưu</p></div><a class="panel-settings-link" href="/settings.html#generator">Cài đặt ↗</a></div>
+          <div class="generator-summary"><span class="field-label">CẤU HÌNH ĐANG DÙNG</span><strong id="generatorDefaults">Đang tải…</strong></div>
+          <div class="generated-box"><span class="generated-label">ĐỊA CHỈ VỪA TẠO</span><span class="generated-email" id="generatedEmail">Bấm Tạo email để bắt đầu</span><button class="copy-inline" id="copyEmail" aria-label="Copy email" disabled>▢</button></div>
+          <div class="button-row"><button class="primary-button" id="generateBtn" disabled>Tạo email</button><button class="secondary-button" id="copyAddressBtn" disabled>Copy email</button></div>
+          <p class="dashboard-hint">Địa chỉ cần có alias hoặc catch-all tại nhà cung cấp để nhận thư.</p>
+        </article>
+        <article class="panel check-panel">
+          <div class="panel-head"><div class="panel-icon check-icon">⌕</div><div><h3>Check Email / OTP</h3><p>Kiểm tra mã mới nhất của địa chỉ</p></div></div>
+          <label class="field-label" for="watchEmail">ĐỊA CHỈ EMAIL</label><div class="email-input-wrap"><input id="watchEmail" type="email" placeholder="Nhập hoặc tạo địa chỉ email" autocomplete="off"><button id="pasteEmail" title="Dùng địa chỉ vừa tạo">↙</button></div>
+          <div class="button-row watch-buttons"><button class="primary-button" id="checkBtn" disabled>Kiểm tra ngay</button><button class="secondary-button" id="watchBtn" disabled>Theo dõi</button><button class="stop-button hidden" id="stopBtn">Dừng</button></div>
+          <div class="watch-status" id="watchStatus"><span class="status-orb"><i></i></span><div><strong>Sẵn sàng</strong><small>Nhập địa chỉ để kiểm tra OTP đã lưu.</small></div></div>
+          <div class="otp-result" id="otpResult"><div><span class="otp-caption">MÃ OTP MỚI NHẤT</span><div class="otp-empty">Chưa có mã</div></div><button class="otp-copy" id="copyOtp" disabled>Copy OTP</button></div>
+          <div class="demo-note">Xem nội dung thư trong <a href="/quick-otp.html">Quick OTP</a>.</div>
+        </article>
+      </section>
+      <section class="panel recent-panel dashboard-recent" id="history"><div class="list-head history-heading"><div><h3>Địa chỉ vừa tạo</h3><p>Mới nhất trước</p></div><label class="history-page-size" for="historyPageSize">Hiển thị<select id="historyPageSize" disabled><option value="10" selected>10 dòng</option><option value="20">20 dòng</option><option value="50">50 dòng</option><option value="100">100 dòng</option></select></label></div><div id="recentList" class="empty-list"><strong>Đang tải địa chỉ…</strong></div><nav id="historyPagination" class="pagination" aria-label="Phân trang địa chỉ email"></nav><p id="historyStatus" class="history-status" role="status"></p></section>
+      <footer class="app-footer"><span>© 2026 Quick OTP Mail</span><span aria-hidden="true">-</span><span id="appVersion" aria-label="Phiên bản ứng dụng">Đang tải phiên bản…</span></footer>
+    </div>
+  </main>
+</div><div class="toast" id="toast" role="status"></div>
+<script src="/workspace.js?v=php-1.0.0-beta_1-update" defer></script><script src="/pagination.js?v=php-1.0.0-beta_1" defer></script><script src="/app.js?v=php-1.0.0-beta_1" defer></script>
+<script src="/footer.js?v=php-1.0.0-beta_1" defer></script>
+</body></html>

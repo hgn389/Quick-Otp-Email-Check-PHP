@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#080c13"><title>Backup &amp; Restore · Quick OTP Mail</title>
+  <link rel="stylesheet" href="/app.css?v=php-1.0.0-beta_1">
+  <link rel="stylesheet" href="/workspace.css?v=php-1.0.0-beta_1-update">
+  <link rel="stylesheet" href="/dark.css?v=php-1.0.0-beta_1">
+</head>
+<body><div class="shell">
+  <aside class="sidebar" id="sidebar">
+    <a class="brand" href="#"><span class="brand-mark"><svg viewBox="0 0 24 24"><path d="M3 6.5 12 13l9-6.5M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z"/></svg><i></i></span><span>quick<span class="brand-light">otp</span><small>MAIL WORKSPACE</small></span></a>
+    <div class="workspace-label">WORKSPACE</div>
+    <nav class="nav">
+      <a class="nav-item" href="/"><span class="nav-icon">▦</span>Dashboard</a>
+      <a class="nav-item" href="/quick-otp.html"><span class="nav-icon">⚡</span>Quick OTP</a>
+      <a class="nav-item" href="/#history"><span class="nav-icon">◷</span>History</a>
+    </nav>
+    <div class="workspace-label nav-secondary-label">PREFERENCES</div>
+    <nav class="nav"><a class="nav-item" href="/settings.html"><span class="nav-icon">⚙</span>Settings</a><a class="nav-item" href="/system.html"><span class="nav-icon">⌁</span>System status</a><a class="nav-item active" href="/backup.html"><span class="nav-icon" aria-hidden="true">⇅</span>Backup &amp; Restore</a><button class="nav-item nav-button" id="logoutBtn" type="button"><span class="nav-icon">↪</span>Logout</button></nav>
+    <div class="sidebar-bottom"><div class="profile"><div class="avatar">A</div><div><strong>Admin</strong><small>Administrator</small></div><a class="dots" href="/settings.html#user" aria-label="Cài đặt tài khoản User" title="Tài khoản và đổi mật khẩu">···</a></div></div>
+  </aside>
+  <main class="main">
+    <header class="topbar"><button class="mobile-menu" id="menuToggle" aria-label="Open menu">☰</button><div class="breadcrumbs">Workspace <span>/</span> <strong>Backup &amp; Restore</strong></div><div class="top-actions"><button class="icon-button theme-toggle" id="themeToggle" aria-label="Toggle theme">◐</button><a class="top-avatar" href="/settings.html#user" aria-label="Tài khoản Admin" title="Tài khoản và đổi mật khẩu">A</a></div></header>
+    <div class="content">
+<div class="page-heading"><div><h1>Backup &amp; Restore</h1><p>Sao lưu dữ liệu và khôi phục từ file backup có mật khẩu.</p></div></div>
+      <section class="panel backup-auth" aria-labelledby="backupAuthTitle"><h2 id="backupAuthTitle">Xác thực tài khoản</h2><label class="setting-field" for="adminPassword"><span>Mật khẩu Admin hiện tại</span><input id="adminPassword" type="password" autocomplete="current-password" maxlength="72" required></label><p class="backup-hint">Nhập lại mật khẩu đang dùng để tải backup hoặc khôi phục dữ liệu.</p></section>
+      <div class="backup-grid">
+        <section class="panel backup-panel" aria-labelledby="backupTitle"><h2 id="backupTitle">Tạo backup</h2><p>Tải một file .qotp chứa dữ liệu đã được mã hóa bằng mật khẩu riêng.</p><form id="backupForm"><label class="setting-field" for="backupPassword"><span>Mật khẩu bảo vệ backup</span><input id="backupPassword" type="password" autocomplete="new-password" minlength="10" maxlength="256" required></label><label class="setting-field" for="backupPasswordConfirm"><span>Nhập lại mật khẩu backup</span><input id="backupPasswordConfirm" type="password" autocomplete="new-password" minlength="10" maxlength="256" required></label><button class="primary-button" id="exportBackupBtn" type="submit" disabled>Tạo &amp; tải backup</button><p id="exportStatus" class="backup-status" role="status"></p></form></section>
+        <section class="panel backup-panel" aria-labelledby="restoreTitle"><h2 id="restoreTitle">Khôi phục dữ liệu</h2><p>Kiểm tra nội dung backup trước khi thay thế dữ liệu hiện tại.</p><form id="restoreForm"><label class="setting-field" for="restoreFile"><span>File backup .qotp · tối đa 32 MiB</span><input id="restoreFile" type="file" accept=".qotp" required></label><label class="setting-field" for="restorePassword"><span>Mật khẩu bảo vệ file đã chọn</span><input id="restorePassword" type="password" autocomplete="off" minlength="10" maxlength="256" required></label><button class="secondary-button" id="inspectBackupBtn" type="submit" disabled>Kiểm tra backup</button><div id="restorePreview" class="restore-preview hidden"><h3>Nội dung bản backup</h3><dl id="restoreDetails"></dl><label class="restore-confirm"><input id="restoreConfirm" type="checkbox">Tôi đồng ý thay thế dữ liệu hiện tại bằng bản backup này.</label><button id="restoreBackupBtn" class="primary-button" type="button" disabled>Khôi phục &amp; đăng xuất</button></div><p id="restoreStatus" class="backup-status" role="status"></p></form></section>
+      </div>
+      <section class="panel backup-panel recovery-panel" aria-labelledby="recoveryTitle"><h2 id="recoveryTitle">Bản dự phòng trước khi restore</h2><p>Hệ thống tự tạo bản dự phòng trước mỗi lần khôi phục. File này dùng cùng mật khẩu bảo vệ file bạn vừa khôi phục.</p><ul id="recoveryList" class="recovery-list"><li>Đang tải danh sách…</li></ul><p id="recoveryStatus" class="backup-status" role="status"></p></section>
+      <section class="panel backup-panel backup-guide" aria-labelledby="guideTitle"><h2 id="guideTitle">Hướng dẫn sử dụng</h2><p>Trang này nhận backup của bản PHP. Backup bản Go dùng định dạng khác.</p><ol><li><strong>Sao lưu:</strong> nhập mật khẩu Admin hiện tại, đặt mật khẩu backup ít nhất 10 ký tự và bấm “Tạo &amp; tải backup”. Giữ file và mật khẩu ở nơi riêng tư; quên mật khẩu sẽ không mở được file.</li><li><strong>Khôi phục:</strong> chọn file .qotp, nhập mật khẩu của file và bấm “Kiểm tra backup”. Xem thời gian, phiên bản và số lượng dữ liệu; xác nhận rồi bấm “Khôi phục &amp; đăng xuất”.</li><li><strong>Đăng nhập lại:</strong> dùng tài khoản và mật khẩu tại thời điểm tạo backup. Các phiên đăng nhập và theo dõi cũ sẽ kết thúc.</li><li><strong>Quay lại dữ liệu trước restore:</strong> đăng nhập, tải bản dự phòng ở phần trên rồi khôi phục file đó. Mật khẩu của bản dự phòng là mật khẩu file đã dùng ở lần restore tương ứng.</li><li><strong>Chuyển máy chủ:</strong> cài bản PHP tương thích trên website mới, đăng nhập, sau đó khôi phục file .qotp. App Password IMAP sẽ được chuyển sang khóa mã hóa của máy mới.</li></ol><p>Backup gồm tài khoản, cài đặt, danh sách domain, lịch sử địa chỉ email, thư đã lưu, cấu hình IMAP và IP bị chặn. IP đang bị chặn trên máy hiện tại được giữ lại khi khôi phục.</p><p>Backup nhanh giới hạn 50.000 bản ghi, 16 MiB dữ liệu và 32 MiB cho file mã hóa. File không chứa source code, chương trình chạy hay thông tin kết nối database của website. Bản dự phòng được lưu trong thư mục <code>backups/</code> trong <code>quickotp-private/storage</code>; hãy tải ra ngoài máy chủ và theo dõi dung lượng lưu trữ.</p><p>Trong lúc xử lý backup/restore, các thao tác khác có thể tạm thời yêu cầu thử lại. Dữ liệu được khôi phục trong một giao dịch; file hỏng hoặc không tương thích sẽ bị từ chối trước khi thay thế dữ liệu.</p></section>
+
+      <footer class="app-footer"><span>© 2026 Quick OTP Mail</span><span aria-hidden="true">-</span><span id="appVersion" aria-label="Phiên bản ứng dụng">Đang tải phiên bản…</span></footer>
+    </div>
+  </main>
+</div><div class="toast" id="toast" role="status"></div>
+<script src="/workspace.js?v=php-1.0.0-beta_1-update" defer></script><script src="/backup.js?v=php-1.0.0-beta_1" defer></script>
+<script src="/footer.js?v=php-1.0.0-beta_1" defer></script>
+</body></html>

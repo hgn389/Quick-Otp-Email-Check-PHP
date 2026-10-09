@@ -1,0 +1,23 @@
+{
+  "name": "quickotp/mail-php",
+  "description": "Quick OTP Mail for PHP and MySQL/MariaDB",
+  "type": "project",
+  "require": {
+    "php": ">=8.3",
+    "ext-pdo": "*",
+    "ext-pdo_mysql": "*",
+    "ext-openssl": "*",
+    "ext-mbstring": "*",
+    "ext-iconv": "*",
+    "ext-zlib": "*",
+    "ext-curl": "*",
+    "zbateson/mail-mime-parser": "^3.0"
+  },
+  "config": {
+    "allow-plugins": {},
+    "platform": {
+      "php": "8.3.0"
+    },
+    "sort-packages": true
+  }
+}

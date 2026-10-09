@@ -1,0 +1,9 @@
+DirectoryIndex index.php
+Options -Indexes
+RewriteEngine On
+RewriteRule ^/?(?:\.|quickotp-private(?:/|$)|vendor(?:/|$)|storage(?:/|$)) - [F,L]
+RewriteRule .* - [E=Cache-Control:no-cache]
+RewriteRule ^/?$ /index.php [L]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ /index.php [L]

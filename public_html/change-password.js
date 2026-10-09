@@ -1,0 +1,8 @@
+const form=document.getElementById('passwordForm');
+const message=document.getElementById('message');
+const submitButton=document.getElementById('submitButton');
+let csrfToken='';
+function showError(text){message.textContent=text;message.classList.add('show');}
+async function initialize(){try{const response=await fetch('/api/v1/auth/session',{headers:{Accept:'application/json'}});if(response.status===401){window.location.replace('/login.html');return;}if(!response.ok)throw new Error('Không thể xác thực phiên đăng nhập');const session=await response.json();if(!session.must_change_password){window.location.replace('/');return;}csrfToken=session.csrf_token;}catch(error){showError(error.message||'Không thể kết nối tới máy chủ');}}
+form.addEventListener('submit',async(event)=>{event.preventDefault();message.classList.remove('show');if(form.newPassword.value!==form.confirmPassword.value){showError('Hai mật khẩu mới không khớp');return;}if(!csrfToken){showError('Phiên đăng nhập chưa sẵn sàng, vui lòng tải lại trang');return;}submitButton.disabled=true;submitButton.textContent='Đang lưu…';try{const response=await fetch('/api/v1/auth/password',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':csrfToken,Accept:'application/json'},body:JSON.stringify({current_password:form.currentPassword.value,new_password:form.newPassword.value})});const data=await response.json();if(!response.ok)throw new Error(data.error||'Không thể đổi mật khẩu');window.location.replace('/');}catch(error){showError(error.message||'Không thể kết nối tới máy chủ');}finally{submitButton.disabled=false;submitButton.textContent='Lưu mật khẩu mới';}});
+initialize();
