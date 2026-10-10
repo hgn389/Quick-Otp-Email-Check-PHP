@@ -132,6 +132,53 @@ final class Auth
         }
     }
 
+    private function ensureProfiles(): void
+    {
+        // Additive storage keeps existing installations and update manifests compatible.
+        if (!$this->db->one("SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='qotp_user_profiles'")) {
+            $this->db->query("CREATE TABLE IF NOT EXISTS qotp_user_profiles (
+                user_id BIGINT UNSIGNED PRIMARY KEY,
+                full_name VARCHAR(100) NOT NULL DEFAULT '', email VARCHAR(254) NOT NULL DEFAULT '',
+                telegram_contact VARCHAR(256) NOT NULL DEFAULT '', updated_at VARCHAR(27) CHARACTER SET ascii NOT NULL,
+                FOREIGN KEY (user_id) REFERENCES qotp_users(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        }
+    }
+
+    public static function validateProfile(array $input): array
+    {
+        $profile = [];
+        foreach (['full_name' => 100, 'email' => 254, 'telegram_contact' => 256] as $key => $limit) {
+            $value = trim(Validation::text($input, $key, $limit * 4));
+            if (mb_strlen($value) > $limit || preg_match('/[\x00-\x1f\x7f]/u', $value)) {
+                throw new HttpError(400, 'Thông tin tài khoản không hợp lệ.');
+            }
+            $profile[$key] = $value;
+        }
+        if ($profile['email'] !== '' && (strlen($profile['email']) > 254 || !filter_var($profile['email'], FILTER_VALIDATE_EMAIL))) {
+            throw new HttpError(400, 'Nhập địa chỉ email hợp lệ.');
+        }
+        if ($profile['telegram_contact'] !== '' && !preg_match('~^(?:@|https://t\.me/)[A-Za-z0-9_]{5,32}$~D', $profile['telegram_contact'])) {
+            throw new HttpError(400, 'Telegram cần có dạng @username hoặc https://t.me/username.');
+        }
+        return $profile;
+    }
+
+    public function profile(array $session): array
+    {
+        $this->ensureProfiles();
+        $row = $this->db->one('SELECT full_name,email,telegram_contact FROM qotp_user_profiles WHERE user_id=?', [$session['user_id']]);
+        return ['username' => $session['username']] + ($row ?? ['full_name' => '', 'email' => '', 'telegram_contact' => '']);
+    }
+
+    public function saveProfile(array $session, array $input): array
+    {
+        $profile = self::validateProfile($input);
+        $this->ensureProfiles();
+        $this->db->query('INSERT INTO qotp_user_profiles(user_id,full_name,email,telegram_contact,updated_at) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE full_name=VALUES(full_name),email=VALUES(email),telegram_contact=VALUES(telegram_contact),updated_at=VALUES(updated_at)', [$session['user_id'], $profile['full_name'], $profile['email'], $profile['telegram_contact'], now()]);
+        return ['username' => $session['username']] + $profile;
+    }
+
     public function changePassword(array $session, array $input): array
     {
         $current = Validation::text($input, 'current_password', 72);

@@ -1,5 +1,13 @@
 # Changelog PHP
 
+## v1.0.0-beta-6 — 2026-10-10
+
+- Add a header avatar dropdown with My Account and Logout, plus a dedicated account page for full name, email, Telegram and password changes.
+- Store optional contact profiles per authenticated user; preserve existing login usernames and password/session security.
+- Replace the sidebar Admin block with English/Vietnamese controls and move the light/dark switch beside them. Remember browser language and save appearance across pages.
+- Translate workspace and Quick OTP labels, statuses, pagination and dates without modifying user profile details or message content.
+- Redirect legacy Settings User links to My Account and include profiles in update recovery snapshots.
+
 ## v1.0.0-beta-5 — 2026-10-10
 
 - Manage up to 100 encrypted IMAP connections in List email domain, with add/edit/test/delete actions and 20-row pagination.

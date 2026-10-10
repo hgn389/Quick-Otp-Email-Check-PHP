@@ -4,6 +4,7 @@ declare(strict_types=1);
 require dirname(__DIR__) . '/quickotp-private/bootstrap.php';
 
 use QuickOtp\Backup;
+use QuickOtp\Auth;
 use QuickOtp\Generator;
 use QuickOtp\HttpError;
 use QuickOtp\Imap;
@@ -31,6 +32,14 @@ function rejected(callable $work, string $message): void
         return;
     }
     check(false, $message);
+}
+
+$profile = Auth::validateProfile(['full_name' => '  Nguyễn An  ', 'email' => 'person+otp@example.com', 'telegram_contact' => '@sample_user']);
+check($profile['full_name'] === 'Nguyễn An' && $profile['email'] === 'person+otp@example.com', 'Profile trims names and accepts contact email');
+check(Auth::validateProfile([]) === ['full_name' => '', 'email' => '', 'telegram_contact' => ''], 'Optional contact details can be cleared');
+check(Auth::validateProfile(['telegram_contact' => 'https://t.me/sample_user'])['telegram_contact'] === 'https://t.me/sample_user', 'Telegram URL accepted');
+foreach ([['email' => 'bad-email'], ['full_name' => str_repeat('a', 101)], ['full_name' => "Name\nInjected"], ['full_name' => []], ['telegram_contact' => 'javascript:alert(1)'], ['telegram_contact' => 'https://t.me.example.com/sample_user'], ['telegram_contact' => '@abc']] as $invalid) {
+    rejected(fn () => Auth::validateProfile($invalid), 'Invalid profile field rejected');
 }
 
 $password = 'Synthetic-private-app-password-2026!';

@@ -8,5 +8,5 @@
     const data = await response.json();
     if (typeof data.version !== 'string' || !data.version) throw new Error('Version unavailable');
     label.textContent = data.version;
-  } catch (_) { label.textContent = 'Phiên bản chưa khả dụng'; }
+  } catch (_) { label.textContent = i18n.t('Phiên bản chưa khả dụng'); }
 })();

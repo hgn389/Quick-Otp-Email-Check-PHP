@@ -1,5 +1,13 @@
 # Security review
 
+## v1.0.0-beta-6 — 2026-10-10
+
+- Profile endpoints require an authenticated session; writes require same-origin CSRF validation and always use the session user ID. Client-supplied usernames, IDs and password fields cannot change another account.
+- Contact fields are bounded and validated. Telegram accepts only usernames or exact `https://t.me/` contact URLs. Profiles and avatars use text/input values, never HTML.
+- Password changes retain current-password verification, rate limits and session/CSRF rotation. Profile APIs never return password hashes or IMAP secrets.
+- Language catalogs translate known UI labels. User profile and message content remain outside template translation. Dropdown links are fixed local routes; logout retains CSRF protection.
+- The optional per-user profile table is additive and is included in recovery snapshots when present. The existing schema manifest remains unchanged for updater compatibility.
+
 ## v1.0.0-beta-5
 
 IMAP accounts retain separate authenticated encryption for App Passwords. Account lists expose connection metadata only; password retrieval and account creation/edit/deletion require an authenticated session and CSRF validation. TLS certificate verification and public-address IMAP host checks remain in force for connection tests and polling.

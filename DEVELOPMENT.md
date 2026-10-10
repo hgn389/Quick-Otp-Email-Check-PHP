@@ -7,6 +7,7 @@ cd ..
 php tests/unit.php
 php tests/updater.php
 node tests/system-ui.js
+node tests/i18n.js
 python3 tests/maintenance.py
 python3 tests/integration.py
 php -S 127.0.0.1:8080 -t public_html tools/router.php
@@ -37,4 +38,4 @@ QUICKOTP_TEST_PACKAGE="$PWD/dist/Quick-Otp-Email-Check-PHP_v$(cat VERSION).zip" 
 QUICKOTP_TEST_PACKAGE="$PWD/dist/Quick-Otp-Email-Check-PHP_v$(cat VERSION)-website.zip" python3 tests/integration.py
 ```
 
-The current version uses `v1.0.0-beta-5`; discovery also accepts legacy `v1.0.0-beta_1` tags. Fresh setup needs no installation-password file or token, including in source checkouts. Legacy secret files stay ignored and must never be included in an archive or commit. `VERSION`, application version, asset versions, installer/footer and release metadata use the same version identifier. Publish beta tags as GitHub prereleases. Beta clients accept later beta versions and stable versions; stable clients do not install beta versions.
+The current version uses `v1.0.0-beta-6`; discovery also accepts legacy `v1.0.0-beta_1` tags. Fresh setup needs no installation-password file or token, including in source checkouts. Legacy secret files stay ignored and must never be included in an archive or commit. `VERSION`, application version, asset versions, installer/footer and release metadata use the same version identifier. Publish beta tags as GitHub prereleases. Beta clients accept later beta versions and stable versions; stable clients do not install beta versions.

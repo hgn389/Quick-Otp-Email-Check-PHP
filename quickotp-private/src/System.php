@@ -7,7 +7,7 @@ use RuntimeException;
 
 final class System
 {
-    public const VERSION = '1.0.0-beta-5';
+    public const VERSION = '1.0.0-beta-6';
     public const REPOSITORY = 'hgn389/Quick-Otp-Email-Check-PHP';
 
     public function __construct(private readonly Database $db, private readonly string $directory)

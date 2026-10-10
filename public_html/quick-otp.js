@@ -20,9 +20,9 @@ function toast(text) {
 }
 async function api(path, options = {}) {
   const response = await fetch(path, { ...options, headers: { Accept: 'application/json', ...(options.headers || {}) }, cache: 'no-store' });
-  if (response.status === 401) { window.location.replace('/login.html'); const error = new Error('Phiên đăng nhập đã hết hạn.'); error.status = 401; throw error; }
+  if (response.status === 401) { window.location.replace('/login.html'); const error = new Error(i18n.t('Phiên đăng nhập đã hết hạn.')); error.status = 401; throw error; }
   const data = await response.json();
-  if (!response.ok) { const error = new Error(data.error || 'Không thể xử lý yêu cầu.'); error.status = response.status; throw error; }
+  if (!response.ok) { const error = new Error((data.error ? i18n.t(data.error) : '') || i18n.t('Không thể xử lý yêu cầu.')); error.status = response.status; throw error; }
   return data;
 }
 async function copy(value) {
@@ -36,8 +36,8 @@ async function copy(value) {
       const copied = document.execCommand('copy'); input.remove();
       if (!copied) throw new Error();
     }
-    toast('Đã Copy');
-  } catch (_) { toast('Không copy được. Hãy nhấn giữ để sao chép.'); }
+    toast(i18n.t('Đã Copy'));
+  } catch (_) { toast(i18n.t('Không copy được. Hãy nhấn giữ để sao chép.')); }
 }
 function resetMessage() {
   state.revision++;
@@ -49,19 +49,19 @@ function resetMessage() {
   $('copyOtp').disabled = true;
   $('mailContent').hidden = true;
   $('mailEmpty').hidden = false;
-  $('mailEmpty').querySelector('p').textContent = 'Thư mới nhất sẽ hiển thị tại đây.';
-  $('mailStatus').textContent = 'Nhấn Xem / Làm mới để kiểm tra địa chỉ.';
+  $('mailEmpty').querySelector('p').textContent = i18n.t('Thư mới nhất sẽ hiển thị tại đây.');
+  $('mailStatus').textContent = i18n.t('Nhấn Xem / Làm mới để kiểm tra địa chỉ.');
   $('mailStatus').classList.remove('error');
 }
 function renderMessage(message) {
   $('mailEmpty').hidden = true;
   $('mailContent').hidden = false;
   // Mail is untrusted: never inject HTML, scripts, images or remote content.
-  $('mailSubject').textContent = message.subject || '(Không có tiêu đề)';
+  $('mailSubject').textContent = message.subject || i18n.t('(Không có tiêu đề)');
   $('mailSender').textContent = message.sender;
   $('mailRecipient').textContent = message.recipient;
-  $('mailTime').textContent = new Date(message.received_at).toLocaleString('vi-VN');
-  $('mailBody').textContent = message.body_text || '(Thư không có nội dung văn bản)';
+  $('mailTime').textContent = new Date(message.received_at).toLocaleString(i18n.locale);
+  $('mailBody').textContent = message.body_text || i18n.t('(Thư không có nội dung văn bản)');
   state.otp = message.otp || '';
   $('mailOtp').textContent = state.otp;
   $('otpBlock').hidden = !state.otp;
@@ -70,7 +70,7 @@ function renderMessage(message) {
 async function loadMail() {
   const email = $('viewEmail').value.trim().toLowerCase();
   if (!state.ready) return;
-  if (!email) { toast('Nhập hoặc tạo địa chỉ email trước.'); $('viewEmail').focus(); return; }
+  if (!email) { toast(i18n.t('Nhập hoặc tạo địa chỉ email trước.')); $('viewEmail').focus(); return; }
   if (!$('viewEmail').checkValidity()) { $('viewEmail').reportValidity(); return; }
   clearTimeout(state.timer);
   if (state.request) state.request.abort();
@@ -80,7 +80,7 @@ async function loadMail() {
   let nextDelay = 5000;
   let retry = false;
   $('refreshMail').disabled = true;
-  $('mailStatus').textContent = 'Đang kiểm tra thư…';
+  $('mailStatus').textContent = i18n.t('Đang kiểm tra thư…');
   $('mailStatus').classList.remove('error');
   try {
     const data = await api('/api/v1/messages/latest?email=' + encodeURIComponent(email), { signal: controller.signal });
@@ -88,21 +88,21 @@ async function loadMail() {
     if (data.message) renderMessage(data.message);
     else {
       $('mailContent').hidden = true; $('mailEmpty').hidden = false; state.otp = ''; $('copyOtp').disabled = true;
-      $('mailEmpty').querySelector('p').textContent = 'Chưa có thư cho địa chỉ này.';
+      $('mailEmpty').querySelector('p').textContent = i18n.t('Chưa có thư cho địa chỉ này.');
     }
     state.connected = data.mail_connection !== 'not_configured';
     retry = state.connected;
     state.retryDelay = 5000;
     if (data.mail_connection === 'syncing') nextDelay = 2000;
     if (data.mail_connection === 'not_configured') {
-      $('mailStatus').textContent = 'Chưa cấu hình IMAP. Vào Settings > Kết nối email để thiết lập.';
+      $('mailStatus').textContent = i18n.t('Chưa cấu hình IMAP. Vào Settings > Kết nối email để thiết lập.');
     } else if (data.mail_connection === 'error') {
-      $('mailStatus').textContent = data.mail_error || 'Không đồng bộ được thư IMAP. Kiểm tra cấu hình kết nối.';
+      $('mailStatus').textContent = data.mail_error || i18n.t('Không đồng bộ được thư IMAP. Kiểm tra cấu hình kết nối.');
       $('mailStatus').classList.add('error');
     } else if (data.mail_connection === 'syncing') {
-      $('mailStatus').textContent = 'Đang có yêu cầu đọc thư khác; sẽ tự kiểm tra lại.';
+      $('mailStatus').textContent = i18n.t('Đang có yêu cầu đọc thư khác; sẽ tự kiểm tra lại.');
     } else {
-      $('mailStatus').textContent = 'Đã kiểm tra hộp thư IMAP: ' + new Date().toLocaleTimeString('vi-VN') + ' · Tự kiểm tra mỗi 5 giây';
+      $('mailStatus').textContent = i18n.t('Đã kiểm tra hộp thư IMAP: ') + new Date().toLocaleTimeString(i18n.locale) + i18n.t(' · Tự kiểm tra mỗi 5 giây');
     }
   } catch (error) {
     if (error.name !== 'AbortError' && revision === state.revision) {
@@ -110,7 +110,7 @@ async function loadMail() {
       state.connected = retry;
       nextDelay = state.retryDelay;
       state.retryDelay = Math.min(30000, state.retryDelay * 2);
-      $('mailStatus').textContent = (error.message || 'Không kết nối được máy chủ.') + (retry ? ' · Sẽ tự thử lại.' : '');
+      $('mailStatus').textContent = (error.message || i18n.t('Không kết nối được máy chủ.')) + (retry ? ' · Sẽ tự thử lại.' : '');
       $('mailStatus').classList.add('error');
     }
   } finally {
@@ -123,7 +123,7 @@ async function loadMail() {
 async function generate(event) {
   event.preventDefault();
   if (!state.ready || state.loading) return;
-  state.loading = true; $('generateButton').disabled = true; $('generateButton').textContent = 'Đang tạo…';
+  state.loading = true; $('generateButton').disabled = true; $('generateButton').textContent = i18n.t('Đang tạo…');
   try {
     const data = await api('/api/v1/generator/email', {
       method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': state.csrf },
@@ -135,9 +135,9 @@ async function generate(event) {
     $('viewEmail').value = data.email;
     resetMessage();
     await loadMail();
-    toast('Đã tạo địa chỉ mới.');
-  } catch (error) { toast(error.message || 'Không tạo được địa chỉ.'); }
-  finally { state.loading = false; $('generateButton').disabled = false; $('generateButton').textContent = 'Tạo mới'; }
+    toast(i18n.t('Đã tạo địa chỉ mới.'));
+  } catch (error) { toast(error.message || i18n.t('Không tạo được địa chỉ.')); }
+  finally { state.loading = false; $('generateButton').disabled = false; $('generateButton').textContent = i18n.t('Tạo mới'); }
 }
 $('generateForm').addEventListener('submit', generate);
 $('generatorType').addEventListener('change', () => {
@@ -171,6 +171,6 @@ async function initialize() {
     state.ready = true;
     $('generateButton').disabled = false;
     $('refreshMail').disabled = false;
-  } catch (error) { $('mailStatus').textContent = 'Không tải được cấu hình. Hãy tải lại trang.'; toast(error.message); }
+  } catch (error) { $('mailStatus').textContent = i18n.t('Không tải được cấu hình. Hãy tải lại trang.'); toast(error.message); }
 }
 initialize();

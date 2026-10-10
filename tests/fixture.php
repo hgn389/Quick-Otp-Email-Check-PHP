@@ -15,9 +15,12 @@ switch ($action) {
         if (getenv('QUICKOTP_TEST_RESET_DATABASE') !== '1') {
             throw new RuntimeException('Explicit test reset flag required');
         }
-        foreach (['sessions', 'reauth_failures', 'messages', 'mail_config', 'generated_emails', 'app_settings', 'blocked_ips', 'login_failures', 'users', 'meta'] as $table) {
+        foreach (['user_profiles', 'sessions', 'reauth_failures', 'messages', 'mail_config', 'generated_emails', 'app_settings', 'blocked_ips', 'login_failures', 'users', 'meta'] as $table) {
             $db->query('DROP TABLE IF EXISTS qotp_' . $table);
         }
+        break;
+    case 'create-profile-user':
+        $db->query('INSERT INTO qotp_users(username,password_hash,created_at,updated_at) VALUES (?,?,?,?)', ['profile-user', password_hash('Synthetic-profile-password-2026!', PASSWORD_BCRYPT), \QuickOtp\now(), \QuickOtp\now()]);
         break;
     case 'seed':
         foreach (['target@example.com' => '123456', 'other@example.com' => '998877'] as $recipient => $otp) {

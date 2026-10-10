@@ -16,18 +16,18 @@ function releaseLink(release) {
 async function checkUpdates() {
   if (installing) return;
   $('checkUpdateBtn').disabled = true; $('installUpdateBtn').disabled = true; latest = null;
-  status('Đang kiểm tra bản PHP trên GitHub…');
+  status(i18n.t('Đang kiểm tra bản PHP trên GitHub…'));
   try {
     const data = await workspace.api('/api/v1/system/update');
     latest = data.latest;
     releaseLink(latest);
     if (data.update_available && latest) {
-      status(data.can_install ? `Có bản PHP mới ${latest.version}. Nhập mật khẩu Admin và xác nhận để cập nhật.` : `Có bản PHP mới ${latest.version}. ${data.install_reason}`, data.can_install ? 'success' : 'error');
+      status(data.can_install ? `Có bản PHP mới ${latest.version}. Nhập mật khẩu Admin và xác nhận để cập nhật.` : i18n.t(`Có bản PHP mới ${latest.version}. ${data.install_reason}`), data.can_install ? 'success' : 'error');
       $('installUpdateBtn').disabled = !data.can_install;
-      $('installUpdateBtn').textContent = 'Cập nhật ngay';
+      $('installUpdateBtn').textContent = i18n.t('Cập nhật ngay');
     } else {
-      status(`Đang dùng ${data.current}. Chưa có bản PHP mới hơn.`, 'success');
-      $('installUpdateBtn').textContent = 'Chưa có bản mới hơn';
+      status(i18n.t(`Đang dùng ${data.current}. Chưa có bản PHP mới hơn.`), 'success');
+      $('installUpdateBtn').textContent = i18n.t('Chưa có bản mới hơn');
     }
   } catch (error) { status(error.message, 'error'); }
   finally { $('checkUpdateBtn').disabled = false; }
@@ -42,17 +42,17 @@ $('updateInstallForm').addEventListener('submit', async event => {
   $('checkUpdateBtn').disabled = true;
   $('updatePassword').disabled = true;
   $('updateConfirm').disabled = true;
-  status('Đang tải và kiểm tra gói cập nhật. Website chỉ tạm bảo trì khi sao lưu và thay mã nguồn…');
+  status(i18n.t('Đang tải và kiểm tra gói cập nhật. Website chỉ tạm bảo trì khi sao lưu và thay mã nguồn…'));
   try {
     const result = await workspace.api('/api/v1/system/update/install', {method: 'POST', body: JSON.stringify({version, confirmation: 'UPDATE', current_password: $('updatePassword').value})});
-    status(`Đã cập nhật ${result.version}. Bản phục hồi: quickotp-private/${result.recovery_directory}. Đang tải lại trang…`, 'success');
+    status(i18n.t(`Đã cập nhật ${result.version}. Bản phục hồi: quickotp-private/${result.recovery_directory}. Đang tải lại trang…`), 'success');
     setTimeout(() => window.location.reload(), 1500);
   } catch (error) {
     // A timeout may hide a completed update. Check status without repeating the POST.
     try {
       const current = await workspace.api('/api/v1/system/status');
       if (current.version === `v${version}-php`) {
-        status(`Đã cập nhật ${current.version}. Đang tải lại trang…`, 'success');
+        status(i18n.t(`Đã cập nhật ${current.version}. Đang tải lại trang…`), 'success');
         setTimeout(() => window.location.reload(), 1500);
         return;
       }
@@ -75,7 +75,7 @@ workspace.ready.then(async ready => {
     const data = await workspace.api('/api/v1/system/status');
     $('systemVersion').textContent = data.version;
     $('systemRuntime').textContent = `PHP ${data.php_version} · ${data.database} ${data.database_version}`;
-    $('systemUptime').textContent = new Date(data.installed_at).toLocaleString('vi-VN');
+    $('systemUptime').textContent = new Date(data.installed_at).toLocaleString(i18n.locale);
     $('systemRepository').textContent = data.github_repository;
     await checkUpdates();
   } catch (error) { status(error.message, 'error'); }

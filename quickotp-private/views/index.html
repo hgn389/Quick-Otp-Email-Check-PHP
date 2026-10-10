@@ -3,9 +3,9 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#080c13"><title>Dashboard · Quick OTP Mail</title>
-  <link rel="stylesheet" href="/app.css?v=php-1.0.0-beta-5">
-  <link rel="stylesheet" href="/workspace.css?v=php-1.0.0-beta-5">
-  <link rel="stylesheet" href="/dark.css?v=php-1.0.0-beta-5">
+  <link rel="stylesheet" href="/app.css?v=php-1.0.0-beta-6">
+  <link rel="stylesheet" href="/workspace.css?v=php-1.0.0-beta-6">
+  <link rel="stylesheet" href="/dark.css?v=php-1.0.0-beta-6">
 </head>
 <body class="dark"><div class="shell">
   <aside class="sidebar" id="sidebar">
@@ -17,11 +17,11 @@
       <a class="nav-item" href="/#history"><span class="nav-icon">◷</span>History</a>
     </nav>
     <div class="workspace-label nav-secondary-label">PREFERENCES</div>
-    <nav class="nav"><a class="nav-item" href="/settings.html"><span class="nav-icon">⚙</span>Settings</a><a class="nav-item" href="/system.html"><span class="nav-icon">⌁</span>System status</a><button class="nav-item nav-button" id="logoutBtn" type="button"><span class="nav-icon">↪</span>Logout</button></nav>
-    <div class="sidebar-bottom"><div class="profile"><div class="avatar">A</div><div><strong>Admin</strong><small>Administrator</small></div><a class="dots" href="/settings.html#user" aria-label="Cài đặt tài khoản User" title="Tài khoản và đổi mật khẩu">···</a></div></div>
+    <nav class="nav"><a class="nav-item" href="/settings.html"><span class="nav-icon">⚙</span>Settings</a><a class="nav-item" href="/system.html"><span class="nav-icon">⌁</span>System status</a></nav>
+    <div class="sidebar-bottom"><div class="sidebar-controls" aria-label="Ngôn ngữ và giao diện"><div class="language-switch" role="group" aria-label="Ngôn ngữ"><button type="button" data-language="en" aria-label="English" aria-pressed="false"><span aria-hidden="true">EN</span><span class="sr-only">English</span></button><span aria-hidden="true">|</span><button type="button" data-language="vi" aria-label="Tiếng Việt" aria-pressed="true"><span aria-hidden="true">VI</span><span class="sr-only">Tiếng Việt</span></button></div><button class="icon-button theme-toggle" id="themeToggle" type="button" aria-label="Chuyển giao diện sáng tối" title="Chuyển giao diện sáng tối">◐</button></div></div>
   </aside>
   <main class="main">
-    <header class="topbar"><button class="mobile-menu" id="menuToggle" aria-label="Open menu">☰</button><nav class="header-nav" aria-label="Main navigation"><a href="/quick-otp.html">Quick OTP</a><a href="/settings.html">Settings</a></nav><div class="top-actions"><button class="icon-button theme-toggle" id="themeToggle" aria-label="Toggle theme">◐</button><a class="top-avatar" href="/settings.html#user" aria-label="Tài khoản Admin" title="Tài khoản và đổi mật khẩu">A</a></div></header>
+    <header class="topbar"><button class="mobile-menu" id="menuToggle" aria-label="Open menu">☰</button><nav class="header-nav" aria-label="Main navigation"><a href="/quick-otp.html">Quick OTP</a><a href="/settings.html">Settings</a></nav><div class="top-actions"><div class="account-menu"><button class="top-avatar" id="accountMenuToggle" type="button" aria-expanded="false" aria-controls="accountDropdown" aria-label="Menu tài khoản">A</button><div class="account-dropdown" id="accountDropdown" hidden><a href="/my-account.html">My Account</a><button type="button" data-logout>Logout</button></div></div></div></header>
     <div class="content">
       <div class="page-heading"><div><div class="eyebrow" id="currentDate"></div><h1>Dashboard</h1><p>Tạo địa chỉ và kiểm tra mã OTP nhanh.</p></div><button class="quiet-button" id="refreshBtn" aria-label="Làm mới Dashboard" title="Làm mới Dashboard"><span>↻</span> Làm mới</button></div>
       <div class="dashboard-summary"><span>Địa chỉ tạo hôm nay <strong id="addressStat">0</strong></span><span id="mailConnectionStatus">Đang tải cấu hình…</span><a href="/settings.html#mail">Email Config →</a></div>
@@ -47,6 +47,7 @@
     </div>
   </main>
 </div><div class="toast" id="toast" role="status"></div>
-<script src="/workspace.js?v=php-1.0.0-beta-5" defer></script><script src="/pagination.js?v=php-1.0.0-beta-5" defer></script><script src="/app.js?v=php-1.0.0-beta-5" defer></script>
-<script src="/footer.js?v=php-1.0.0-beta-5" defer></script>
+<script src="/i18n.js?v=php-1.0.0-beta-6" defer></script>
+<script src="/workspace.js?v=php-1.0.0-beta-6" defer></script><script src="/pagination.js?v=php-1.0.0-beta-6" defer></script><script src="/app.js?v=php-1.0.0-beta-6" defer></script>
+<script src="/footer.js?v=php-1.0.0-beta-6" defer></script>
 </body></html>

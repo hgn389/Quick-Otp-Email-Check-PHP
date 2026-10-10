@@ -64,6 +64,7 @@ jobs:
           php tests/unit.php
           php tests/updater.php
           node tests/system-ui.js
+          node tests/i18n.js
           python3 tests/maintenance.py
           python3 tests/integration.py
           python3 tools/package.py

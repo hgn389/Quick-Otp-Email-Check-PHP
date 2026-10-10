@@ -70,6 +70,9 @@ final class App
                 $this->auth->logout($session);
                 http_response_code(204);
                 exit;
+            case '/api/v1/auth/profile':
+                Http::method('GET', 'PUT');
+                Http::json($_SERVER['REQUEST_METHOD'] === 'GET' ? $this->auth->profile($session) : $this->auth->saveProfile($session, Http::body()));
             case '/api/v1/auth/password':
                 Http::method('POST');
                 Http::json($this->auth->changePassword($session, Http::body()));
@@ -171,6 +174,7 @@ final class App
                 $this->page('index.html');
             case '/quick-otp.html':
             case '/settings.html':
+            case '/my-account.html':
             case '/system.html':
             case '/change-password.html':
                 $this->page(substr($path, 1));

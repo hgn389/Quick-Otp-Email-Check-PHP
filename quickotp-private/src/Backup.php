@@ -12,6 +12,7 @@ final class Backup
     public const MAX_ROWS = 50000;
     public const MAGIC = 'QOTPPH01';
     public const TABLES = [
+        'user_profiles' => ['user_id', 'full_name', 'email', 'telegram_contact', 'updated_at'],
         'users' => ['id', 'username', 'password_hash', 'must_change_password', 'created_at', 'updated_at', 'last_login_at'],
         'app_settings' => ['id', 'default_domain', 'generator_type', 'default_prefix', 'default_domains', 'auto_fill_watch', 'auto_start_watch', 'appearance', 'updated_at'],
         'generated_emails' => ['id', 'email', 'local_part', 'domain', 'generator_type', 'created_at'],
@@ -92,6 +93,9 @@ final class Backup
             $count = 0;
             $size = 0;
             foreach (self::TABLES as $name => $columns) {
+                if ($name === 'user_profiles' && !$this->db->one("SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='qotp_user_profiles'")) {
+                    continue;
+                }
                 $statement = $this->db->query('SELECT ' . implode(',', $columns) . ' FROM qotp_' . $name);
                 $result[$name] = [];
                 while ($row = $statement->fetch()) {

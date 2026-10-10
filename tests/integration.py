@@ -116,7 +116,7 @@ def exercise(site, base, database):
     assert not list((site / 'quickotp-private').glob('quickotp-probe-*'))
     assert not list(site.glob('quickotp-probe-*'))
     assert anonymous.request('GET', '/health/ready')[0] == 200
-    for path in ['/', '/settings.html', '/quick-otp.html', '/system.html']:
+    for path in ['/', '/settings.html', '/quick-otp.html', '/system.html', '/my-account.html']:
         assert anonymous.request('GET', path)[0] == 303
     assert anonymous.request('POST', '/api/v1/settings/mail/password')[0] == 401
     for path in ['/quickotp-private/config.php', '/quickotp-private/storage/backups/a.qotp', '/.env', '/../../quickotp-private/config.php']:
@@ -131,6 +131,32 @@ def exercise(site, base, database):
     code, _, headers = client.request('GET', '/settings.html')
     assert code == 200 and headers['Cache-Control'] == 'no-store' and "script-src 'self'" in headers['Content-Security-Policy']
     assert client.request('POST', '/api/v1/auth/login', {'username': 'admin', 'password': ADMIN}, headers={'Origin': 'https://untrusted.example'})[0] == 403
+    profile_path = '/api/v1/auth/profile'
+    assert anonymous.request('GET', profile_path)[0] == 401
+    profile = {'full_name': 'Sample Administrator', 'email': 'admin@example.org', 'telegram_contact': '@sample_admin'}
+    assert client.request('GET', profile_path)[1] == {'username': 'admin', 'full_name': '', 'email': '', 'telegram_contact': ''}
+    assert client.request('PUT', profile_path, profile, csrf=False)[0] == 403
+    assert client.request('PUT', profile_path, profile, headers={'Origin': 'https://untrusted.example'})[0] == 403
+    assert client.request('POST', profile_path, profile)[0] == 405
+    assert client.request('PUT', profile_path, profile)[1] == {'username': 'admin', **profile}
+    assert second.request('GET', profile_path)[1] == {'username': 'admin', **profile}
+    for invalid in [{'email': 'bad'}, {'telegram_contact': 'https://evil.example/user'}, {'full_name': 'a' * 101}, {'full_name': 'bad\nname'}]:
+        assert client.request('PUT', profile_path, {**profile, **invalid})[0] == 400
+    assert client.request('GET', profile_path)[1] == {'username': 'admin', **profile}
+    fixture(site, 'create-profile-user')
+    other_user = Client(base)
+    assert other_user.request('POST', '/api/v1/auth/login', {'username': 'profile-user', 'password': 'Synthetic-profile-password-2026!'})[0] == 200
+    other_user.csrf = other_user.request('GET', '/api/v1/auth/session')[1]['csrf_token']
+    assert other_user.request('GET', profile_path)[1]['full_name'] == ''
+    assert other_user.request('PUT', profile_path, {**profile, 'user_id': 1, 'username': 'admin', 'full_name': 'Other User'})[1]['username'] == 'profile-user'
+    assert client.request('GET', profile_path)[1] == {'username': 'admin', **profile}
+    for path in ['/', '/settings.html', '/system.html', '/my-account.html']:
+        code, page, _ = client.request('GET', path)
+        assert code == 200 and b'id="accountDropdown" hidden' in page and b'href="/my-account.html"' in page
+        assert b'data-language="en"' in page and b'data-language="vi"' in page
+        assert b'class="profile"' not in page and b'Administrator</small>' not in page
+    assert b'id="userTab"' not in client.request('GET', '/settings.html')[1]
+    assert b'id="profileFullName"' in client.request('GET', '/my-account.html')[1]
     settings = client.request('GET', '/api/v1/settings')[1]
     assert settings['appearance'] == 'dark'
     settings.update(default_domain='example.com', default_domains=['example.com', 'example.org'], generator_type='random_crypto', appearance='dark')
@@ -245,6 +271,7 @@ def exercise(site, base, database):
         assert client.request('POST', '/api/v1/generator/email', {'domain': 'example.com', 'type': 'random_crypto'})[0] == 200
     assert client.request('POST', '/api/v1/auth/password', {'current_password': ADMIN, 'new_password': NEW_ADMIN})[0] == 200
     assert second.request('GET', '/api/v1/auth/session')[0] == 401
+    assert client.request('GET', profile_path)[1] == {'username': 'admin', **profile}
     client.csrf = client.request('GET', '/api/v1/auth/session')[1]['csrf_token']
     assert client.request('GET', '/api/v1/history/page')[1]['total'] == 28
     assert client.request('POST', '/api/v1/settings/mail/password')[1]['password'] == MAIL_PASSWORD
@@ -269,7 +296,7 @@ def exercise(site, base, database):
         statuses = list(executor.map(fail_login, range(5)))
     assert sorted(statuses) == [401, 401, 401, 401, 403]
     assert Client(base).request('POST', '/api/v1/auth/login', {'username': 'admin', 'password': NEW_ADMIN})[0] == 403
-    print('PASS: PHP web installation, private files, authentication/CSRF/session rotation, pagination, multiple encrypted IMAP accounts/domain routing, concurrent domain deduplication, atomic domain limits, exact recipient mail lookup, password-free setup/form retention, removed backup endpoints, header links, expired sessions and concurrent login blocking.')
+    print('PASS: PHP web installation, private files, authentication/CSRF/session rotation, pagination, multiple encrypted IMAP accounts/domain routing, concurrent domain deduplication, atomic domain limits, exact recipient mail lookup, password-free setup/form retention, removed backup endpoints, personal profile validation/isolation/persistence, account dropdown and language controls, header links, expired sessions and concurrent login blocking.')
 
 
 def main():

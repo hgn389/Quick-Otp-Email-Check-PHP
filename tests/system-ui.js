@@ -5,6 +5,7 @@ const vm = require('node:vm');
 const elements = new Map();
 const context = vm.createContext({
   URL,
+  i18n: {t: value => value},
   document: {getElementById(id) {
     if (!elements.has(id)) elements.set(id, {hidden: true, href: '', addEventListener() {}});
     return elements.get(id);

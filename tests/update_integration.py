@@ -18,7 +18,7 @@ def exercise_update(site, client, anonymous, admin_password, project):
     initial_history = client.request('GET', '/api/v1/history/page')[1]['total']
     assets = private / 'storage/test-update-assets'
     assets.mkdir(mode=0o700)
-    version = '1.0.0-beta-6'
+    version = '1.0.0-beta-7'
     package_name = f'Quick-Otp-Email-Check-PHP_v{version}'
     payload = {}
     for directory in ['public_html', 'quickotp-private/src', 'quickotp-private/views', 'quickotp-private/vendor']:
@@ -84,8 +84,8 @@ def exercise_update(site, client, anonymous, admin_password, project):
             assert anonymous.request('GET', '/health/ready')[0] == expected
             (assets / (phase + '-continue')).touch()
         code, result, _ = job.result()
-    assert code == 200 and result['version'] == 'v1.0.0-beta-6-php', result
-    assert client.request('GET', '/api/v1/system/status')[1]['version'] == 'v1.0.0-beta-6-php'
+    assert code == 200 and result['version'] == 'v1.0.0-beta-7-php', result
+    assert client.request('GET', '/api/v1/system/status')[1]['version'] == 'v1.0.0-beta-7-php'
     assert anonymous.request('GET', '/health/ready')[0] == 200
     assert (private / 'config.php').read_bytes() == original_config
     assert client.request('GET', '/api/v1/history/page')[1]['total'] == initial_history
@@ -94,6 +94,9 @@ def exercise_update(site, client, anonymous, admin_password, project):
     decrypted = subprocess.run(['php', '-r', r'require $argv[1]; $data=\QuickOtp\Backup::open(file_get_contents($argv[2]),$argv[3]); echo json_encode($data);', str(private / 'bootstrap.php'), str(backup / 'database.qotp'), admin_password], capture_output=True, text=True, check=True)
     snapshot = json.loads(decrypted.stdout)
     assert len(snapshot['tables']['generated_emails']) == initial_history
+    profiles = snapshot['tables']['user_profiles']
+    assert any(row['full_name'] == 'Sample Administrator' and row['email'] == 'admin@example.org' for row in profiles)
+    assert client.request('GET', '/api/v1/auth/profile')[1]['full_name'] == 'Sample Administrator'
     assert len(snapshot['tables']['mail_config']) == len(client.request('GET', '/api/v1/settings/mail/accounts')[1]['items'])
     # Simulate an interrupted installation: the gate must stop before loading even broken classes.
     (private / 'src/App.php').write_text('<?php broken syntax {')
