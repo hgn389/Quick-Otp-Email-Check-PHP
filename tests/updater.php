@@ -41,7 +41,7 @@ function newSite(): string {
 }
 function futureZip(string $site, array $changes = [], bool $symlink = false, bool $wrongSchema = false): string {
     global $temporary;
-    $version = '1.0.0-beta-7';
+    $version = '1.0.2';
     $path = $temporary . '/package-' . bin2hex(random_bytes(4)) . '.zip';
     $files = [];
     foreach (['public_html', 'quickotp-private'] as $directory) {
@@ -66,12 +66,12 @@ function futureZip(string $site, array $changes = [], bool $symlink = false, boo
     return $path;
 }
 function releaseFixture(): array {
-    $base = 'https://github.com/' . System::REPOSITORY . '/releases/download/v1.0.0-beta-7/';
-    return ['number' => '1.0.0-beta-7', 'download_url' => $base . 'Quick-Otp-Email-Check-PHP_v1.0.0-beta-7.zip', 'checksums_url' => $base . 'checksums-php.txt'];
+    $base = 'https://github.com/' . System::REPOSITORY . '/releases/download/v1.0.2/';
+    return ['number' => '1.0.2', 'download_url' => $base . 'Quick-Otp-Email-Check-PHP_v1.0.2.zip', 'checksums_url' => $base . 'checksums-php.txt'];
 }
 function runUpdate(string $site, string $zip, ?Closure $fault = null, bool $badHash = false): array {
     $fetch = static function (string $url, string $destination, int $limit) use ($zip, $badHash): void {
-        if (str_ends_with($url, 'checksums-php.txt')) file_put_contents($destination, ($badHash ? str_repeat('0', 64) : hash_file('sha256', $zip)) . "  Quick-Otp-Email-Check-PHP_v1.0.0-beta-7.zip\n");
+        if (str_ends_with($url, 'checksums-php.txt')) file_put_contents($destination, ($badHash ? str_repeat('0', 64) : hash_file('sha256', $zip)) . "  Quick-Otp-Email-Check-PHP_v1.0.2.zip\n");
         else copy($zip, $destination);
     };
     $lock = fopen($site . '/quickotp-private/storage/maintenance.lock', 'c+b');
@@ -95,7 +95,7 @@ try {
     $config = file_get_contents($site . '/quickotp-private/config.php');
     $result = runUpdate($site, futureZip($site));
     assertUpdate(file_get_contents($site . '/quickotp-private/install-password.php') === "<?php return 'Synthetic-retained-setup-password';\n", 'Configured installation password is preserved during updates');
-    assertUpdate($result['status'] === 'updated' && $result['version'] === 'v1.0.0-beta-7-php', 'New version installed');
+    assertUpdate($result['status'] === 'updated' && $result['version'] === 'v1.0.2-php', 'New version installed');
     assertUpdate(file_get_contents($site . '/public_html/app.js') !== $original, 'New assets installed');
     assertUpdate(file_get_contents($site . '/quickotp-private/config.php') === $config && file_get_contents($site . '/quickotp-private/storage/persistent-data') === 'preserve-runtime-data', 'Configuration and runtime preserved');
     $backup = $site . '/quickotp-private/' . $result['recovery_directory'];

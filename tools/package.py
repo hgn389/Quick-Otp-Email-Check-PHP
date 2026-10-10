@@ -60,8 +60,9 @@ with tempfile.TemporaryDirectory(prefix='quickotp-php-package-') as temporary:
         shutil.copyfile(source, private / file)
     (private / 'storage').mkdir()
     (private / 'storage/.gitkeep').touch()
-    for file in ['README.md', 'CYBERPANEL.md', 'SECURITY_REVIEW.md', 'CHANGELOG.md', 'VERSION']:
+    for file in ['README.md', 'CYBERPANEL.md', 'CHANGELOG.md', 'VERSION']:
         shutil.copyfile(root / file, package / file)
+    assert not any((package / name).exists() for name in ['SECURITY_REVIEW.md', 'DEVELOPMENT.md', 'AGENTS.md']), 'Internal documents must not be bundled'
     for file in package.rglob('*'):
         if not file.is_file():
             continue

@@ -18,7 +18,7 @@ def exercise_update(site, client, anonymous, admin_password, project):
     initial_history = client.request('GET', '/api/v1/history/page')[1]['total']
     assets = private / 'storage/test-update-assets'
     assets.mkdir(mode=0o700)
-    version = '1.0.0-beta-7'
+    version = '1.0.2'
     package_name = f'Quick-Otp-Email-Check-PHP_v{version}'
     payload = {}
     for directory in ['public_html', 'quickotp-private/src', 'quickotp-private/views', 'quickotp-private/vendor']:
@@ -41,7 +41,7 @@ def exercise_update(site, client, anonymous, admin_password, project):
         archive.writestr(package_name + '/update.json', json.dumps(manifest))
     (assets / 'checksums-php.txt').write_text(hashlib.sha256(package.read_bytes()).hexdigest() + '  ' + package.name + '\n')
     base = f'https://github.com/hgn389/Quick-Otp-Email-Check-PHP/releases/download/v{version}/'
-    releases = [{'tag_name': 'v' + version, 'draft': False, 'prerelease': True, 'assets': [
+    releases = [{'tag_name': 'v' + version, 'draft': False, 'prerelease': False, 'assets': [
         {'name': package.name, 'size': package.stat().st_size, 'browser_download_url': base + package.name},
         {'name': 'checksums-php.txt', 'browser_download_url': base + 'checksums-php.txt'}]}]
     (private / 'storage/releases.json').write_text(json.dumps(releases))
@@ -84,8 +84,8 @@ def exercise_update(site, client, anonymous, admin_password, project):
             assert anonymous.request('GET', '/health/ready')[0] == expected
             (assets / (phase + '-continue')).touch()
         code, result, _ = job.result()
-    assert code == 200 and result['version'] == 'v1.0.0-beta-7-php', result
-    assert client.request('GET', '/api/v1/system/status')[1]['version'] == 'v1.0.0-beta-7-php'
+    assert code == 200 and result['version'] == 'v1.0.2-php', result
+    assert client.request('GET', '/api/v1/system/status')[1]['version'] == 'v1.0.2-php'
     assert anonymous.request('GET', '/health/ready')[0] == 200
     assert (private / 'config.php').read_bytes() == original_config
     assert client.request('GET', '/api/v1/history/page')[1]['total'] == initial_history

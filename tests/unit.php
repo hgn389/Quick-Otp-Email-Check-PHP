@@ -234,4 +234,13 @@ $hyphenRelease['prerelease'] = true;
 check(System::release([$hyphenRelease], '1.0.0-beta_1')['number'] === '1.0.0-beta-2', 'Current parser discovers hyphen releases from legacy version identifiers');
 check(System::release([$hyphenRelease], '1.0.0') === null, 'Stable clients still skip hyphen beta releases');
 
+$stableRelease = ['tag_name' => 'v1.0.1', 'draft' => false, 'prerelease' => false, 'assets' => [
+    ['name' => 'Quick-Otp-Email-Check-PHP_v1.0.1.zip', 'browser_download_url' => 'https://github.com/' . System::REPOSITORY . '/releases/download/v1.0.1/Quick-Otp-Email-Check-PHP_v1.0.1.zip', 'size' => 1024],
+    ['name' => 'checksums-php.txt', 'browser_download_url' => 'https://github.com/' . System::REPOSITORY . '/releases/download/v1.0.1/checksums-php.txt'],
+]];
+check(System::release([$stableRelease], '1.0.0-beta-6')['number'] === '1.0.1' && System::newer('1.0.1', '1.0.0-beta-6'), 'Beta installations can upgrade to the stable release');
+$futureBeta = json_decode(str_replace('1.0.1', '1.0.2-beta-1', json_encode($stableRelease)), true);
+$futureBeta['prerelease'] = true;
+check(System::release([$futureBeta, $stableRelease], '1.0.1')['number'] === '1.0.1', 'Stable installations ignore future beta releases');
+
 echo "PASS: $checks PHP crypto, validation, generator, MIME, IMAP and update checks.\n";

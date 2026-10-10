@@ -1,14 +1,14 @@
 # CyberPanel installation and recovery
 
-## Upload-only installation (v1.0.0-beta-6)
+## Upload-only installation (v1.0.1)
 
-Use `Quick-Otp-Email-Check-PHP_v1.0.0-beta-6-website.zip` and extract directly into **`/home/domain.com/`**, not `public_html`. The archive has no wrapper directory. Allow replacement of matching files so its `public_html/` merges into the existing website directory. It does not delete unrelated files. Keep the website document root at `/home/domain.com/public_html/`.
+Use `Quick-Otp-Email-Check-PHP_v1.0.1-website.zip` and extract directly into **`/home/domain.com/`**, not `public_html`. The archive has no wrapper directory. Allow replacement of matching files so its `public_html/` merges into the existing website directory. It does not delete unrelated files. Keep the website document root at `/home/domain.com/public_html/`.
 
 For installation without Terminal, open **Websites → List Websites → Manage → File Manager** for this domain. Navigate to `/home/domain.com/`, upload the website ZIP and extract it there. Use the website-specific File Manager so files are created as the website's PHP user; avoid extraction through a server-wide root File Manager. Wait for extraction to finish before opening the website.
 
 If your panel cannot access or extract into the website home, extract locally and upload the two application directories with an account that writes as the website's PHP user and can access `/home/domain.com/`. SFTP requires SSH access for that account; an FTP account restricted to `public_html` cannot upload its sibling private directory. Ask your host for access if needed. Root uploads/extraction can leave the private directory unwritable, and PHP cannot change ownership of root-owned files. This workflow does not repair pre-existing root-owned directories.
 
-The package includes dependencies; Composer is not needed. Download the beta-6 website ZIP and checksums from the release links in README. See [README's no-Terminal installation steps](https://github.com/hgn389/Quick-Otp-Email-Check-PHP#install-without-terminal) for the full procedure.
+The package includes dependencies; Composer is not needed. Download the v1.0.1 website ZIP and checksums from the release links in README. See [README's no-Terminal installation steps](https://github.com/hgn389/Quick-Otp-Email-Check-PHP#install-without-terminal) for the full procedure.
 
 The resulting files are:
 
