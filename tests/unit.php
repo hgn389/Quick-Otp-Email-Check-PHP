@@ -77,6 +77,18 @@ rejected(fn () => Generator::local('unsupported'), 'Unknown generator rejected')
 rejected(fn () => Generator::local('custom_prefix', '!!!'), 'Invalid prefix rejected');
 rejected(fn () => Validation::email('a@example.com.evil@target.com'), 'Invalid email rejected');
 $settings = Settings::defaults();
+check($settings['appearance'] === 'dark', 'New installation defaults to dark');
+check(Settings::mailDomain('Mailbox@EXAMPLE.COM') === 'example.com', 'Mailbox domain normalized');
+check(Settings::mailDomain('legacy-imap-login') === '', 'Legacy non-email login retained without a domain');
+$accounts = [['id' => 1, 'username' => 'primary@example.com'], ['id' => 2, 'username' => 'other@example.net']];
+check(Settings::selectMail($accounts, 'alias@example.net')['id'] === 2, 'Recipient domain selects its own mailbox');
+check(Settings::selectMail($accounts, 'alias@example.com')['id'] === 1, 'First domain selects its own mailbox');
+check(Settings::selectMail($accounts, 'alias@sub.example.net') === null, 'Domain routing requires an exact domain');
+check(Settings::selectMail($accounts, 'alias@example.org') === null, 'Unconfigured domain does not use an unrelated mailbox');
+check(Settings::selectMail([$accounts[0]], 'alias@example.org')['id'] === 1, 'Single mailbox retains legacy alias-domain fallback');
+check(Settings::selectMail([], 'alias@example.com') === null, 'Empty accounts are unconfigured');
+foreach ([0, -1, 256, '1', null] as $invalidId) rejected(fn () => Settings::mailId(['id' => $invalidId]), 'Invalid mail account ID rejected');
+check(Settings::mailId(['id' => 255]) === 255 && Settings::mailId([]) === null, 'Valid and legacy default account IDs');
 $settings['default_domains'] = ['example.com', 'example.org'];
 rejected(fn () => Settings::validate($settings), 'Default domain must be saved');
 

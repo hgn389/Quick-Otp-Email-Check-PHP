@@ -3,11 +3,11 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#080c13"><title>Settings · Quick OTP Mail</title>
-  <link rel="stylesheet" href="/app.css?v=php-1.0.0-beta-4">
-  <link rel="stylesheet" href="/workspace.css?v=php-1.0.0-beta-4-update">
-  <link rel="stylesheet" href="/dark.css?v=php-1.0.0-beta-4">
+  <link rel="stylesheet" href="/app.css?v=php-1.0.0-beta-5">
+  <link rel="stylesheet" href="/workspace.css?v=php-1.0.0-beta-5">
+  <link rel="stylesheet" href="/dark.css?v=php-1.0.0-beta-5">
 </head>
-<body><div class="shell">
+<body class="dark"><div class="shell">
   <aside class="sidebar" id="sidebar">
     <a class="brand" href="#"><span class="brand-mark"><svg viewBox="0 0 24 24"><path d="M3 6.5 12 13l9-6.5M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z"/></svg><i></i></span><span>quick<span class="brand-light">otp</span><small>MAIL WORKSPACE</small></span></a>
     <div class="workspace-label">WORKSPACE</div>
@@ -34,27 +34,34 @@
         <div class="settings-heading"><span class="setup-kicker">GENERAL</span><h2>Cài đặt chung</h2><p>Chọn chế độ giao diện cho toàn bộ workspace và Quick OTP.</p></div>
         <form id="generalForm" class="settings-form">
           <div class="settings-grid">
-            <label class="setting-field"><span>GIAO DIỆN</span><select id="settingAppearance"><option value="system">Theo hệ thống</option><option value="light">Sáng</option><option value="dark">Tối</option></select><small>Thay đổi được xem trước ngay; bấm Lưu để áp dụng cho các lần truy cập sau.</small></label>
+            <label class="setting-field"><span>GIAO DIỆN</span><select id="settingAppearance"><option value="system">Theo hệ thống</option><option value="light">Sáng</option><option value="dark" selected>Tối</option></select><small>Thay đổi được xem trước ngay; bấm Lưu để áp dụng cho các lần truy cập sau.</small></label>
           </div>
           <div class="settings-actions"><span id="generalSavedAt" class="settings-saved" role="status">Đang tải cấu hình…</span><button type="submit" class="primary-button" id="saveGeneralBtn" disabled>Lưu cài đặt chung</button></div>
         </form>
       </section>
       <section class="panel settings-panel" id="mail" role="tabpanel" aria-labelledby="mailTab" tabindex="0" hidden>
-        <div class="settings-heading"><span class="setup-kicker">EMAIL CONNECTION</span><h2 id="mailTitle">Email Config – Connect</h2><p>Kết nối hộp thư chính nhận email từ các alias hoặc catch-all.</p></div>
+        <div class="settings-heading"><span class="setup-kicker">EMAIL CONNECTION</span><h2 id="mailTitle">Email Config – Connect</h2><p>Thêm mailbox chính cho từng domain để nhận email từ alias hoặc catch-all.</p></div>
         <form id="mailForm" class="settings-form">
           <div class="settings-grid">
             <label class="setting-field"><span>PROVIDER</span><select id="mailProvider"><option value="yandex">Yandex Mail</option><option value="custom">Custom IMAP</option></select></label>
             <label class="setting-field"><span>IMAP HOST</span><input id="mailHost" required placeholder="imap.yandex.com" autocomplete="off" autocapitalize="none"></label>
             <label class="setting-field"><span>IMAP PORT</span><input id="mailPort" type="number" min="1" max="65535" value="993" required></label>
-            <label class="setting-field"><span>USERNAME / MAILBOX CHÍNH</span><input id="mailUsername" required autocomplete="off" autocapitalize="none" placeholder="Username đăng nhập hộp thư"></label>
+            <label class="setting-field"><span>USERNAME / MAILBOX CHÍNH</span><input id="mailUsername" required autocomplete="off" autocapitalize="none" placeholder="mailbox@example.com"></label>
             <label class="setting-field"><span>APP PASSWORD</span><input id="mailPassword" type="password" autocomplete="new-password" placeholder="Nhập mật khẩu ứng dụng" aria-describedby="passwordHint"><small id="passwordHint">Mật khẩu được mã hóa khi lưu.</small></label>
             <label class="setting-field"><span>FOLDER</span><input id="mailFolder" required value="INBOX" autocomplete="off"></label>
           </div>
           <p class="dashboard-hint">TLS được bật bắt buộc. Với Yandex, bật IMAP và tạo App Password; các alias cần chuyển thư vào hộp thư chính này.</p>
           <p class="settings-note-text">Kiểm tra kết nối xác minh TLS, đăng nhập và mở folder. Dashboard và Quick OTP tải thư từ IMAP khi kiểm tra hoặc theo dõi.</p>
           <div id="mailResult" class="form-result" role="status">Đang tải cấu hình email…</div>
-          <div class="settings-actions"><button id="testMailBtn" type="button" class="secondary-button" disabled>Kiểm tra kết nối</button><button id="saveMailBtn" type="submit" class="primary-button" disabled>Lưu Email Config</button></div>
+          <div class="settings-actions"><button id="cancelMailBtn" type="button" class="secondary-button" hidden>Hủy thêm mới</button><button id="testMailBtn" type="button" class="secondary-button" disabled>Kiểm tra kết nối</button><button id="saveMailBtn" type="submit" class="primary-button" disabled>Lưu Email Config</button></div>
         </form>
+        <section class="mail-accounts" aria-labelledby="mailAccountsTitle">
+          <div class="mail-accounts-heading"><h3 id="mailAccountsTitle">List email domain</h3><button id="addMailBtn" type="button" class="primary-button" disabled>+ Thêm email</button></div>
+          <p class="dashboard-hint">Mỗi domain dùng một mailbox chính. Khi lưu email, domain được tự thêm vào DOMAIN MẶC ĐỊNH. Đã lưu cấu hình không có nghĩa là đã kiểm tra kết nối.</p>
+          <p id="mailAccountsResult" class="form-result" role="status">Đang tải danh sách tài khoản…</p>
+          <ul id="mailAccountsList" class="mail-accounts-list" aria-label="Danh sách tài khoản email"></ul>
+          <nav id="mailAccountsPagination" class="pagination" aria-label="Phân trang tài khoản email"></nav>
+        </section>
       </section>
       <section class="panel settings-panel" id="generator" role="tabpanel" aria-labelledby="generatorTab" tabindex="0" hidden>
         <div class="settings-heading generator-heading">
@@ -103,6 +110,6 @@
     </div>
   </main>
 </div><div class="toast" id="toast" role="status"></div>
-<script src="/workspace.js?v=php-1.0.0-beta-4-update" defer></script><script src="/pagination.js?v=php-1.0.0-beta-4" defer></script><script src="/settings.js?v=php-1.0.0-beta-4" defer></script>
-<script src="/footer.js?v=php-1.0.0-beta-4" defer></script>
+<script src="/workspace.js?v=php-1.0.0-beta-5" defer></script><script src="/pagination.js?v=php-1.0.0-beta-5" defer></script><script src="/settings.js?v=php-1.0.0-beta-5" defer></script>
+<script src="/footer.js?v=php-1.0.0-beta-5" defer></script>
 </body></html>

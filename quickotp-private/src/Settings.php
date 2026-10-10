@@ -11,7 +11,7 @@ final class Settings
 
     public static function defaults(): array
     {
-        return ['default_domain' => 'yourdomain.com', 'default_domains' => ['yourdomain.com'], 'generator_type' => 'vietnamese_name_number', 'default_prefix' => '', 'auto_fill_watch' => true, 'auto_start_watch' => false, 'appearance' => 'system'];
+        return ['default_domain' => 'yourdomain.com', 'default_domains' => ['yourdomain.com'], 'generator_type' => 'vietnamese_name_number', 'default_prefix' => '', 'auto_fill_watch' => true, 'auto_start_watch' => false, 'appearance' => 'dark'];
     }
 
     public function get(): array
@@ -20,7 +20,7 @@ final class Settings
         if ($row === null) {
             return self::defaults();
         }
-        return ['default_domain' => $row['default_domain'], 'default_domains' => json_decode($row['default_domains'], true, 8, JSON_THROW_ON_ERROR), 'generator_type' => $row['generator_type'], 'default_prefix' => $row['default_prefix'], 'auto_fill_watch' => (bool) $row['auto_fill_watch'], 'auto_start_watch' => (bool) $row['auto_start_watch'], 'appearance' => $row['appearance']];
+        return $this->withMailDomains(['default_domain' => $row['default_domain'], 'default_domains' => json_decode($row['default_domains'], true, 8, JSON_THROW_ON_ERROR), 'generator_type' => $row['generator_type'], 'default_prefix' => $row['default_prefix'], 'auto_fill_watch' => (bool) $row['auto_fill_watch'], 'auto_start_watch' => (bool) $row['auto_start_watch'], 'appearance' => $row['appearance']], $this->storedMails());
     }
 
     public static function validate(array $input): array
@@ -56,21 +56,100 @@ final class Settings
         return ['default_domain' => $domain, 'default_domains' => $domains, 'generator_type' => $type, 'default_prefix' => $prefix, 'auto_fill_watch' => $input['auto_fill_watch'], 'auto_start_watch' => $input['auto_start_watch'], 'appearance' => $appearance];
     }
 
-    public function save(array $input): array
+    private function atomic(callable $work): mixed
     {
-        $settings = self::validate($input);
-        $this->db->query('INSERT INTO qotp_app_settings(id,default_domain,default_domains,generator_type,default_prefix,auto_fill_watch,auto_start_watch,appearance,updated_at) VALUES (1,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE default_domain=VALUES(default_domain),default_domains=VALUES(default_domains),generator_type=VALUES(generator_type),default_prefix=VALUES(default_prefix),auto_fill_watch=VALUES(auto_fill_watch),auto_start_watch=VALUES(auto_start_watch),appearance=VALUES(appearance),updated_at=VALUES(updated_at)', [$settings['default_domain'], json_encode($settings['default_domains'], JSON_THROW_ON_ERROR), $settings['generator_type'], $settings['default_prefix'], (int) $settings['auto_fill_watch'], (int) $settings['auto_start_watch'], $settings['appearance'], now()]);
+        return $this->db->pdo->inTransaction() ? $work() : $this->db->transaction($work);
+    }
+
+    private function lockSettings(): void
+    {
+        // Serialize account/domain changes, including allocation of account IDs.
+        $this->db->one('SELECT id FROM qotp_app_settings WHERE id=1 FOR UPDATE');
+    }
+
+    private function withMailDomains(array $settings, array $accounts): array
+    {
+        $domains = $settings['default_domains'];
+        foreach ($accounts as $account) {
+            $domain = self::mailDomain($account['username']);
+            if ($domain !== '' && !in_array($domain, $domains, true)) {
+                if ($domains === ['yourdomain.com'] && $settings['default_domain'] === 'yourdomain.com') {
+                    $domains = [];
+                    $settings['default_domain'] = $domain;
+                }
+                $domains[] = $domain;
+            }
+        }
+        $settings['default_domains'] = $domains;
         return $settings;
     }
 
-    public function storedMail(): array
+    private function writeSettings(array $settings): void
     {
-        return $this->db->one('SELECT * FROM qotp_mail_config WHERE id=1') ?? ['provider' => 'yandex', 'host' => 'imap.yandex.com', 'port' => 993, 'username' => '', 'folder' => 'INBOX', 'password_encrypted' => ''];
+        $this->db->query('INSERT INTO qotp_app_settings(id,default_domain,default_domains,generator_type,default_prefix,auto_fill_watch,auto_start_watch,appearance,updated_at) VALUES (1,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE default_domain=VALUES(default_domain),default_domains=VALUES(default_domains),generator_type=VALUES(generator_type),default_prefix=VALUES(default_prefix),auto_fill_watch=VALUES(auto_fill_watch),auto_start_watch=VALUES(auto_start_watch),appearance=VALUES(appearance),updated_at=VALUES(updated_at)', [$settings['default_domain'], json_encode($settings['default_domains'], JSON_THROW_ON_ERROR), $settings['generator_type'], $settings['default_prefix'], (int) $settings['auto_fill_watch'], (int) $settings['auto_start_watch'], $settings['appearance'], now()]);
+    }
+
+    public function save(array $input): array
+    {
+        $settings = self::validate($input);
+        return $this->atomic(function () use ($settings): array {
+            $this->lockSettings();
+            $settings = self::validate($this->withMailDomains($settings, $this->storedMails()));
+            $this->writeSettings($settings);
+            return $settings;
+        });
+    }
+
+    public static function emptyMail(): array
+    {
+        return ['id' => 0, 'provider' => 'yandex', 'host' => 'imap.yandex.com', 'port' => 993, 'username' => '', 'folder' => 'INBOX', 'password_encrypted' => '', 'updated_at' => ''];
+    }
+
+    public function storedMails(): array
+    {
+        return $this->db->query('SELECT * FROM qotp_mail_config ORDER BY id')->fetchAll();
+    }
+
+    public function storedMail(?int $id = null): array
+    {
+        $mail = $id === null
+            ? $this->db->one('SELECT * FROM qotp_mail_config ORDER BY id LIMIT 1')
+            : $this->db->one('SELECT * FROM qotp_mail_config WHERE id=?', [$id]);
+        if ($mail === null && $id !== null) {
+            throw new HttpError(404, 'Không tìm thấy tài khoản email. Tải lại danh sách.');
+        }
+        return $mail ?? self::emptyMail();
+    }
+
+    public function mailAccounts(): array
+    {
+        return array_map(self::mailResponse(...), $this->storedMails());
+    }
+
+    public static function mailId(array $input): ?int
+    {
+        if (!array_key_exists('id', $input)) {
+            return null;
+        }
+        if (!is_int($input['id']) || $input['id'] < 1 || $input['id'] > 255) {
+            throw new HttpError(400, 'ID tài khoản email không hợp lệ.');
+        }
+        return $input['id'];
+    }
+
+    public static function mailDomain(string $username): string
+    {
+        try {
+            return explode('@', Validation::email($username), 2)[1];
+        } catch (HttpError) {
+            // Legacy IMAP logins need not have been email addresses.
+            return '';
+        }
     }
 
     public static function mailResponse(array $mail): array
     {
-        return ['provider' => $mail['provider'], 'host' => $mail['host'], 'port' => (int) $mail['port'], 'username' => $mail['username'], 'folder' => $mail['folder'], 'has_password' => $mail['password_encrypted'] !== '', 'configured' => $mail['password_encrypted'] !== '', 'encryption' => 'TLS'];
+        return ['id' => (int) ($mail['id'] ?? 0), 'domain' => self::mailDomain($mail['username']), 'provider' => $mail['provider'], 'host' => $mail['host'], 'port' => (int) $mail['port'], 'username' => $mail['username'], 'folder' => $mail['folder'], 'has_password' => $mail['password_encrypted'] !== '', 'configured' => $mail['password_encrypted'] !== '', 'encryption' => 'TLS', 'updated_at' => $mail['updated_at'] ?? ''];
     }
 
     public static function validateMail(array $input): array
@@ -90,14 +169,22 @@ final class Settings
         if ($username === '' || $folder === '' || preg_match('/[\x00-\x1f\x7f]/', $username . $folder) || preg_match('/[\x00\r\n]/', $password)) {
             throw new HttpError(400, 'Username, folder hoặc App Password không hợp lệ.');
         }
+        if (str_contains($username, '@')) {
+            $username = Validation::email($username);
+        }
         return compact('provider', 'host', 'port', 'username', 'folder', 'password');
     }
 
-    public function mailRequest(array $input): array
+    public function mailRequest(array $input, bool $create = false): array
     {
+        $id = self::mailId($input);
+        if ($create && $id !== null) {
+            throw new HttpError(400, 'Không gửi ID khi thêm tài khoản mới.');
+        }
         $mail = self::validateMail($input);
+        $stored = $create ? self::emptyMail() : $this->storedMail($id);
+        $mail['id'] = (int) $stored['id'];
         if ($mail['password'] === '') {
-            $stored = $this->storedMail();
             if ($stored['password_encrypted'] === '') {
                 throw new HttpError(400, 'Nhập App Password để kết nối.');
             }
@@ -111,19 +198,81 @@ final class Settings
         return $mail;
     }
 
-    public function saveMail(array $input): array
+    public function saveMail(array $input, bool $create = false): array
     {
-        $mail = $this->mailRequest($input);
-        $mail['password_encrypted'] = $this->secrets->encrypt($mail['password']);
-        $this->db->query('INSERT INTO qotp_mail_config(id,provider,host,port,username,folder,password_encrypted,updated_at) VALUES (1,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE provider=VALUES(provider),host=VALUES(host),port=VALUES(port),username=VALUES(username),folder=VALUES(folder),password_encrypted=VALUES(password_encrypted),updated_at=VALUES(updated_at)', [$mail['provider'], $mail['host'], $mail['port'], $mail['username'], $mail['folder'], $mail['password_encrypted'], now()]);
-        return self::mailResponse($mail);
+        return $this->atomic(function () use ($input, $create): array {
+            $this->lockSettings();
+            $mail = $this->mailRequest($input, $create);
+            $accounts = $this->storedMails();
+            $domain = self::mailDomain($mail['username']);
+            if ($mail['id'] === 0 && $domain === '') {
+                throw new HttpError(400, 'Nhập địa chỉ mailbox đầy đủ, ví dụ mailbox@example.com.');
+            }
+            foreach ($accounts as $account) {
+                if ((int) $account['id'] === $mail['id']) {
+                    continue;
+                }
+                if (strcasecmp($account['username'], $mail['username']) === 0
+                    || ($domain !== '' && self::mailDomain($account['username']) === $domain)) {
+                    throw new HttpError(409, 'Domain này đã có mailbox chính. Chọn Sửa ở tài khoản hiện có.');
+                }
+            }
+            if ($mail['id'] === 0) {
+                if (count($accounts) >= 100) {
+                    throw new HttpError(400, 'Tối đa 100 tài khoản email.');
+                }
+                $used = array_map(static fn (array $account): int => (int) $account['id'], $accounts);
+                for ($id = 1; $id <= 255; $id++) {
+                    if (!in_array($id, $used, true)) {
+                        $mail['id'] = $id;
+                        break;
+                    }
+                }
+            }
+            $mail['password_encrypted'] = $this->secrets->encrypt($mail['password']);
+            $mail['updated_at'] = now();
+            $this->db->query('INSERT INTO qotp_mail_config(id,provider,host,port,username,folder,password_encrypted,updated_at) VALUES (?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE provider=VALUES(provider),host=VALUES(host),port=VALUES(port),username=VALUES(username),folder=VALUES(folder),password_encrypted=VALUES(password_encrypted),updated_at=VALUES(updated_at)', [$mail['id'], $mail['provider'], $mail['host'], $mail['port'], $mail['username'], $mail['folder'], $mail['password_encrypted'], $mail['updated_at']]);
+            $settings = self::validate($this->get());
+            $this->writeSettings($settings);
+            return self::mailResponse($mail) + ['settings' => $settings];
+        });
     }
 
-    public function mailPassword(): array
+    public function deleteMail(int $id): array
     {
-        $mail = $this->storedMail();
+        return $this->atomic(function () use ($id): array {
+            $this->lockSettings();
+            $this->storedMail($id);
+            $this->writeSettings(self::validate($this->get()));
+            $this->db->query('DELETE FROM qotp_mail_config WHERE id=?', [$id]);
+            // Keep domains and generated-address history until the admin removes them explicitly.
+            return ['items' => $this->mailAccounts()];
+        });
+    }
+
+    public function mailPassword(?int $id = null): array
+    {
+        $mail = $this->storedMail($id);
         return self::mailResponse($mail) + ['password' => $mail['password_encrypted'] !== '' ? $this->secrets->decrypt($mail['password_encrypted']) : ''];
     }
+
+    public static function selectMail(array $accounts, string $email): ?array
+    {
+        $domain = explode('@', Validation::email($email), 2)[1];
+        foreach ($accounts as $account) {
+            if (self::mailDomain($account['username']) === $domain) {
+                return $account;
+            }
+        }
+        // Preserve the previous single-mailbox catch-all setup for additional alias domains.
+        return count($accounts) === 1 ? $accounts[0] : null;
+    }
+
+    public function storedMailForRecipient(string $email): ?array
+    {
+        return self::selectMail($this->storedMails(), $email);
+    }
+
 }
 
 final class Generator

@@ -1,15 +1,15 @@
-# Quick OTP Mail PHP v1.0.0-beta-4
+# Quick OTP Mail PHP v1.0.0-beta-5
 
 A PHP email and OTP dashboard for CyberPanel Free, OpenLiteSpeed and Apache, using MySQL or MariaDB.
 
 ## Quick installation: upload, extract, open your website
 
-**v1.0.0-beta-4** is a beta prerelease. [Download the ready-to-install website ZIP](https://github.com/hgn389/Quick-Otp-Email-Check-PHP/releases/download/v1.0.0-beta-4/Quick-Otp-Email-Check-PHP_v1.0.0-beta-4-website.zip) or open the [release page and SHA-256 checksums](https://github.com/hgn389/Quick-Otp-Email-Check-PHP/releases/tag/v1.0.0-beta-4). Dependencies are bundled. Extract, open your website and enter database details plus your chosen Admin password. No installation-password file or token needs to be created.
+**v1.0.0-beta-5** is a beta prerelease. [Download the ready-to-install website ZIP](https://github.com/hgn389/Quick-Otp-Email-Check-PHP/releases/download/v1.0.0-beta-5/Quick-Otp-Email-Check-PHP_v1.0.0-beta-5-website.zip) or open the [release page and SHA-256 checksums](https://github.com/hgn389/Quick-Otp-Email-Check-PHP/releases/tag/v1.0.0-beta-5). Dependencies are bundled. Extract, open your website and enter database details plus your chosen Admin password. No installation-password file or token needs to be created.
 
 Use this version for new installations. Earlier releases remain available for historical reference; beta-3 and earlier used the previous installation-password step. Do not use GitHub's **Source code (zip)** for upload-only installation.
 
 1. Create a website, enable SSL and create a MySQL/MariaDB database in CyberPanel. Select **PHP 8.3 or later**. Keep the website document root at `/home/domain.com/public_html/`.
-2. Upload **`Quick-Otp-Email-Check-PHP_v1.0.0-beta-4-website.zip`** into **`/home/domain.com/`**, then extract it **there**, allowing replacement of application files with the same names. Use the website-specific File Manager or upload with the website account, as described below. Keep hidden `.htaccess` files and delete the uploaded ZIP afterwards. The archive merges its `public_html/` into the existing directory and places `quickotp-private/` beside it. It does not add a version-named wrapper.
+2. Upload **`Quick-Otp-Email-Check-PHP_v1.0.0-beta-5-website.zip`** into **`/home/domain.com/`**, then extract it **there**, allowing replacement of application files with the same names. Use the website-specific File Manager or upload with the website account, as described below. Keep hidden `.htaccess` files and delete the uploaded ZIP afterwards. The archive merges its `public_html/` into the existing directory and places `quickotp-private/` beside it. It does not add a version-named wrapper.
 3. Open **`https://domain.com/`**. Enter the database details and your chosen Admin password twice. Database host is normally `localhost`; database port is normally `3306`.
 4. Click **Install**, then log in with **`admin`** and the Admin password you just chose. In **Settings**, add your email domains and configure IMAP/App Password.
 
@@ -45,7 +45,7 @@ If you prefer SSH, log in as the website's PHP user (with SSH access enabled), t
 
 ```bash
 cd /home/domain.com/
-unzip -o Quick-Otp-Email-Check-PHP_v1.0.0-beta-4-website.zip
+unzip -o Quick-Otp-Email-Check-PHP_v1.0.0-beta-5-website.zip
 ```
 
 The `-o` option overwrites matching files. If you extract as root, files can remain owned by root and PHP will not be able to create its storage lock. Correct ownership for both directories using the [storage permissions instructions below](#setup-shows-a-maintenance-error-immediately-after-extraction), then continue with step 3. Set both `public_html` and `quickotp-private` to the website owner; if PHP uses `open_basedir`, it must allow `/home/domain.com/quickotp-private/`. Do not make `/home/domain.com/` the public document root.
@@ -124,13 +124,23 @@ A missing lock file means PHP must be able to create it in storage; an existing 
 
 If the message appeared after an update, check whether `quickotp-private/storage/update-pending.json` exists and follow the recovery instructions in CYBERPANEL.md. Do not remove this marker or delete lock files while an update may be running.
 
+## Multiple email domains
+
+Open **Settings → Email Config – Connect** and click **+ Thêm email** in **List email domain**. Enter the provider, IMAP host/port, full mailbox address, App Password and folder. Test the connection, then save the account. For example, saving `mailbox@example.com` automatically adds `example.com` to **DOMAIN MẶC ĐỊNH** in **Gen Email Username Setting**, without a separate generator save. The first real mailbox replaces the initial `yourdomain.com` placeholder if that is still the only domain.
+
+The list shows the mailbox, domain, server/folder and connection-test result, with **Edit**, **Test** and **Delete** actions and 20 rows per page. Saved configuration and successful connection tests are distinguished; test results belong to the current page session and do not promise continuous connectivity. App Passwords are encrypted separately and are not included in the account-list response. Editing an account retains the existing password unless it is replaced; changing its server or username requires its password again.
+
+Each domain has one main mailbox, receiving aliases or catch-all mail for that domain. Quick OTP and Dashboard select the mailbox by the requested email's domain; accounts use separate polling locks and caches. With multiple accounts, a domain without a matching connection is reported as unconfigured. A single existing mailbox retains the previous fallback for additional alias domains. Generating addresses does not create provider mailboxes or configure forwarding/catch-all.
+
+Up to 100 accounts and 100 generator domains are supported. Domains belonging to saved connections remain in the generator list, including when an older form is saved. Delete a connection first if you want to remove its domain. Deleting a connection preserves generator domains, generated addresses and saved messages; removing a domain is a separate explicit action. The existing mailbox configuration is preserved when upgrading; no database migration or reinstallation is required.
+
 ## Features
 
 - Dashboard, Quick OTP, generated address history, Settings, User, System status.
 - Vietnamese/USA/Canada usernames, random usernames, 16-character Crypto-style usernames and custom prefixes.
 - Domain lists with pagination; email history defaults to 10 rows with 10/20/50/100 choices.
 - Email content and OTP copying, with automatic checks every 5 seconds while the page is open.
-- Light/dark appearance and password changes.
+- Dark appearance by default for the dashboard, Settings, System status and Quick OTP; light/system options and password changes. Saved appearance choices are preserved.
 - Bcrypt login passwords, encrypted IMAP App Passwords, authenticated sessions and CSRF protection.
 - Authenticated updates from this project's PHP releases, with checksums, a recovery copy and rollback on failure.
 

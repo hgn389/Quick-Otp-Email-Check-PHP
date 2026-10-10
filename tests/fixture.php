@@ -25,6 +25,9 @@ switch ($action) {
         }
         $db->query('INSERT INTO qotp_blocked_ips(ip_address,created_at) VALUES (?,?)', ['203.0.113.8', \QuickOtp\now()]);
         break;
+    case 'legacy-domain-settings':
+        $db->query('UPDATE qotp_app_settings SET default_domain=?,default_domains=? WHERE id=1', ['example.com', json_encode(['example.com'], JSON_THROW_ON_ERROR)]);
+        break;
     case 'expire-session':
         $db->query('UPDATE qotp_sessions SET expires_at=? WHERE token_hash=?', [\QuickOtp\now(), hash('sha256', $input['token'])]);
         break;

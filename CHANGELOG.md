@@ -1,5 +1,14 @@
 # Changelog PHP
 
+## v1.0.0-beta-5 — 2026-10-10
+
+- Manage up to 100 encrypted IMAP connections in List email domain, with add/edit/test/delete actions and 20-row pagination.
+- Add mailbox domains to generator defaults atomically, deduplicate domains and retain active connection domains when saving Settings.
+- Route mailbox polling by recipient domain and isolate account locks/caches; preserve legacy single-mailbox alias behavior and stored configuration without a schema change.
+- Keep account passwords out of list responses and retain CSRF, TLS and server-side network validation.
+- Default the dashboard, Settings, System status and Quick OTP to dark appearance on fresh installations and when no appearance preference is available. Preserve saved light, dark and system choices.
+- Render these pages dark before scripts initialize and refresh theme-script asset URLs.
+
 ## v1.0.0-beta-4 — 2026-10-10
 
 - Remove the separate installation password and its manual file/template setup. Fresh installations use database details and the chosen Admin password directly in the browser.

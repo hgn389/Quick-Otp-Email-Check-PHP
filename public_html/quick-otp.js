@@ -2,14 +2,14 @@
 const $ = id => document.getElementById(id);
 const state = { csrf: '', address: '', otp: '', ready: false, connected: false, loading: false, timer: null, toastTimer: null, request: null, revision: 0, retryDelay: 5000 };
 const systemTheme = window.matchMedia('(prefers-color-scheme: dark)');
-let appearance = 'system';
+let appearance = 'dark';
 function applyTheme(value) {
-  appearance = ['dark', 'light', 'system'].includes(value) ? value : 'system';
+  appearance = ['dark', 'light', 'system'].includes(value) ? value : 'dark';
   const dark = appearance === 'dark' || (appearance === 'system' && systemTheme.matches);
   document.body.classList.toggle('dark', dark);
   document.documentElement.classList.toggle('dark', dark);
 }
-try { applyTheme(localStorage.getItem('quickotp-theme') || 'system'); } catch (_) { applyTheme('system'); }
+try { applyTheme(localStorage.getItem('quickotp-theme') || 'dark'); } catch (_) { applyTheme('dark'); }
 systemTheme.addEventListener('change', () => applyTheme(appearance));
 window.addEventListener('storage', event => { if (event.key === 'quickotp-theme') applyTheme(event.newValue); });
 function toast(text) {

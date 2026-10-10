@@ -99,7 +99,7 @@ function esc(string $value): string
 }
 ?>
 <!doctype html>
-<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cài đặt Quick OTP Mail PHP</title><link rel="stylesheet" href="/auth.css?v=php-1.0.0-beta-4"><link rel="stylesheet" href="/install.css?v=php-1.0.0-beta-4"></head>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cài đặt Quick OTP Mail PHP</title><link rel="stylesheet" href="/auth.css?v=php-1.0.0-beta-5"><link rel="stylesheet" href="/install.css?v=php-1.0.0-beta-5"></head>
 <body><main class="auth-shell install-shell"><div class="auth-brand"><span class="brand-mark">✉</span><span>Quick OTP Mail · PHP</span></div><section class="auth-card install-card"><h1>Cài đặt website</h1><p>Kết nối database MySQL/MariaDB và tạo tài khoản Admin.</p>
 <details class="install-requirements" <?= !$ready ? 'open' : '' ?>><summary><?= $ready ? 'Máy chủ đã sẵn sàng cài đặt' : 'Kiểm tra yêu cầu máy chủ' ?></summary><ul class="install-checks">
 <?php foreach ($checks as $label => $ok): ?><li class="<?= $ok ? 'check-ok' : 'check-error' ?>"><?= $ok ? '✓' : '✕' ?> <?= esc($label) ?></li><?php endforeach; ?>

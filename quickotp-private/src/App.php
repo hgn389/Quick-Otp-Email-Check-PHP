@@ -79,9 +79,24 @@ final class App
             case '/api/v1/settings/mail':
                 Http::method('GET', 'PUT');
                 Http::json($_SERVER['REQUEST_METHOD'] === 'GET' ? Settings::mailResponse($this->settings->storedMail()) : $this->settings->saveMail(Http::body()));
+            case '/api/v1/settings/mail/accounts':
+                Http::method('GET', 'POST', 'DELETE');
+                if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+                    Http::json(['items' => $this->settings->mailAccounts()]);
+                }
+                $input = Http::body();
+                if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
+                    $id = Settings::mailId($input);
+                    if ($id === null) {
+                        throw new HttpError(400, 'Chọn tài khoản email cần xóa.');
+                    }
+                    Http::json($this->settings->deleteMail($id));
+                }
+                Http::json($this->settings->saveMail($input, true), 201);
             case '/api/v1/settings/mail/password':
                 Http::method('POST');
-                Http::json($this->settings->mailPassword());
+                $input = (int) ($_SERVER['CONTENT_LENGTH'] ?? 0) === 0 && !isset($_SERVER['HTTP_TRANSFER_ENCODING']) ? [] : Http::body();
+                Http::json($this->settings->mailPassword(Settings::mailId($input)));
             case '/api/v1/settings/mail/test':
                 Http::method('POST');
                 try {
@@ -228,11 +243,12 @@ final class App
 
     private function syncMail(string $email): array
     {
-        $stored = $this->settings->storedMail();
-        if ($stored['password_encrypted'] === '') {
-            return ['not_configured', ''];
+        $stored = $this->settings->storedMailForRecipient($email);
+        if ($stored === null || $stored['password_encrypted'] === '') {
+            return ['not_configured', 'Chưa có mailbox chính cho domain của địa chỉ này. Thêm tài khoản trong Settings → Email Config.'];
         }
-        $path = $this->directory . '/storage/imap.lock';
+        $accountId = (int) $stored['id'];
+        $path = $this->directory . '/storage/imap-' . $accountId . '.lock';
         $lock = fopen($path, 'c+b');
         if ($lock === false || !flock($lock, LOCK_EX | LOCK_NB)) {
             if (is_resource($lock)) {
@@ -241,8 +257,8 @@ final class App
             return ['syncing', ''];
         }
         try {
-            // A single bounded cache avoids opening several sessions for simultaneous polls.
-            $cachePath = $this->directory . '/storage/imap-cache.json';
+            // Isolate polling locks and bounded caches so different domains do not block each other.
+            $cachePath = $this->directory . '/storage/imap-cache-' . $accountId . '.json';
             $key = hash('sha256', json_encode($stored, JSON_THROW_ON_ERROR) . $email);
             if (is_file($cachePath) && filesize($cachePath) < 4096) {
                 $cache = json_decode((string) file_get_contents($cachePath), true);
@@ -254,7 +270,7 @@ final class App
                 $mail = Settings::mailResponse($stored);
                 $mail['password'] = $this->secrets->decrypt($stored['password_encrypted']);
                 $incoming = (new Imap($mail))->latest($email);
-                if ($this->settings->storedMail() !== $stored) {
+                if ($this->settings->storedMailForRecipient($email) !== $stored) {
                     return ['syncing', ''];
                 }
                 if ($incoming !== null) {

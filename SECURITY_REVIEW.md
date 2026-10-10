@@ -1,5 +1,11 @@
 # Security review
 
+## v1.0.0-beta-5
+
+IMAP accounts retain separate authenticated encryption for App Passwords. Account lists expose connection metadata only; password retrieval and account creation/edit/deletion require an authenticated session and CSRF validation. TLS certificate verification and public-address IMAP host checks remain in force for connection tests and polling.
+
+Mailbox/domain changes are serialized through the existing settings row and committed together. Duplicate domain connections and invalid account IDs are rejected. Polling chooses an exact recipient domain, isolates account locks/caches and discards results if the selected configuration changed during synchronization. The legacy single-mailbox fallback for additional alias domains is retained; multiple-account setups do not fall back to an unrelated account. No database schema change is required, and internal update snapshots include all account rows.
+
 ## v1.0.0-beta-4
 
 Fresh setup no longer requires a separate installation password or manually created token. The form accepts database settings and a new Admin password. Existing same-origin/CSRF checks, session expiry, installation locking, installed-configuration guard and private-directory protections remain. Obsolete local installation-password files are never executed.

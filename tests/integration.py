@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Install and exercise the PHP app against an isolated MySQL/MariaDB database."""
 import html as html_tools
+import fcntl
 import concurrent.futures
 import hashlib
 import http.cookiejar
@@ -131,6 +132,7 @@ def exercise(site, base, database):
     assert code == 200 and headers['Cache-Control'] == 'no-store' and "script-src 'self'" in headers['Content-Security-Policy']
     assert client.request('POST', '/api/v1/auth/login', {'username': 'admin', 'password': ADMIN}, headers={'Origin': 'https://untrusted.example'})[0] == 403
     settings = client.request('GET', '/api/v1/settings')[1]
+    assert settings['appearance'] == 'dark'
     settings.update(default_domain='example.com', default_domains=['example.com', 'example.org'], generator_type='random_crypto', appearance='dark')
     assert client.request('PUT', '/api/v1/settings', settings, csrf=False)[0] == 403
     assert client.request('PUT', '/api/v1/settings', {**settings, 'default_domain': 'missing.example'})[0] == 400
@@ -164,12 +166,69 @@ def exercise(site, base, database):
     assert client.request('PUT', '/api/v1/settings/mail', {**mail, 'password': '', 'host': 'other.example.com'})[0] == 400
     assert client.request('PUT', '/api/v1/settings/mail', {**mail, 'password': 'bad\r\nLOGOUT'})[0] == 400
     assert client.request('POST', '/api/v1/settings/mail/test', {**mail, 'host': 'localhost'})[0] == 400
+    accounts_path = '/api/v1/settings/mail/accounts'
+    assert anonymous.request('GET', accounts_path)[0] == 401
+    assert client.request('POST', accounts_path, mail, csrf=False)[0] == 403
+    assert client.request('DELETE', accounts_path, {'id': saved['id']}, csrf=False)[0] == 403
+    assert client.request('GET', accounts_path)[1]['items'][0]['id'] == saved['id']
+    second_password = 'Synthetic-second-mail-app-password-2026!'
+    extra_mail = {**mail, 'username': 'support@example.net', 'password': second_password}
+    assert client.request('POST', accounts_path, {**extra_mail, 'password': ''})[0] == 400
+    assert client.request('POST', accounts_path, {**extra_mail, 'username': 'bare-login'})[0] == 400
+    code, extra, _ = client.request('POST', accounts_path, extra_mail)
+    assert code == 201 and extra['id'] != saved['id'] and extra['domain'] == 'example.net'
+    second_id = extra['id']
+    assert 'example.net' in client.request('GET', '/api/v1/settings')[1]['default_domains']
+    assert 'example.net' in extra['settings']['default_domains']
+    assert 'password' not in extra and 'password_encrypted' not in extra
+    assert client.request('POST', accounts_path, {**extra_mail, 'username': 'OTHER@EXAMPLE.NET'})[0] == 409
+    assert client.request('POST', accounts_path, {**extra_mail, 'id': second_id})[0] == 400
+    assert client.request('POST', '/api/v1/settings/mail/password', {'id': second_id})[1]['password'] == second_password
+    assert client.request('POST', '/api/v1/settings/mail/password')[1]['password'] == MAIL_PASSWORD
+    assert client.request('POST', '/api/v1/settings/mail/password', {'id': '2'})[0] == 400
+    assert client.request('POST', '/api/v1/settings/mail/password', {'id': 255})[0] == 404
+    assert client.request('PUT', '/api/v1/settings/mail', {**extra_mail, 'id': second_id, 'password': '', 'folder': 'Archive'})[0] == 200
+    assert client.request('PUT', '/api/v1/settings/mail', {**extra_mail, 'id': second_id, 'password': '', 'username': 'fixture@example.com'})[0] == 400
+    listed = client.request('GET', accounts_path)[1]['items']
+    assert len(listed) == 2 and all('password' not in item and 'password_encrypted' not in item for item in listed)
+    # A stale generator form cannot drop domains used by active connections.
+    stale = {**settings, 'default_domains': ['example.com'], 'default_domain': 'example.com'}
+    assert 'example.net' in client.request('PUT', '/api/v1/settings', stale)[1]['default_domains']
+    assert client.request('GET', '/api/v1/messages/latest?email=alias@example.org')[1]['mail_connection'] == 'not_configured'
+    # Hold only account two's lock: its recipient polls must use this lock.
+    lock_path = site / 'quickotp-private/storage' / ('imap-' + str(second_id) + '.lock')
+    with lock_path.open('a+b') as held:
+        fcntl.flock(held, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        assert client.request('GET', '/api/v1/messages/latest?email=alias@example.net')[1]['mail_connection'] == 'syncing'
+    # Adding an account and its domain is one atomic transaction at the domain limit.
+    before_limit = client.request('GET', '/api/v1/settings')[1]
+    full_domains = ['example.com', 'example.net'] + [f'limit{i}.example.org' for i in range(98)]
+    assert client.request('PUT', '/api/v1/settings', {**before_limit, 'default_domains': full_domains})[0] == 200
+    assert client.request('POST', accounts_path, {**extra_mail, 'username': 'support@overflow.example.org'})[0] == 400
+    assert len(client.request('GET', accounts_path)[1]['items']) == 2
+    assert client.request('PUT', '/api/v1/settings', before_limit)[0] == 200
+    # Concurrent inserts for the same domain must create only one connection.
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+        added = list(executor.map(lambda local: client.request('POST', accounts_path, {**extra_mail, 'username': local + '@race.example.org'}), ['one', 'two']))
+    assert sorted(response[0] for response in added) == [201, 409]
+    winner = next(response[1] for response in added if response[0] == 201)
+    assert client.request('DELETE', accounts_path, {'id': winner['id']})[0] == 200
+    assert client.request('DELETE', accounts_path, {})[0] == 400
+    assert client.request('DELETE', accounts_path, {'id': 255})[0] == 404
     fixture(site, 'seed')
     code, stored, _ = client.request('GET', '/api/v1/messages/latest?email=target@example.com')
     assert code == 200 and stored['message']['otp'] == '123456' and stored['message']['recipient'] == 'target@example.com'
     assert client.request('GET', '/api/v1/otp/latest?email=target@example.com')[1]['otp'] == '123456'
     assert client.request('GET', '/api/v1/messages/latest?email=unmatched@example.com')[1]['message'] is None
     exercise_update(site, client, anonymous, ADMIN, PROJECT)
+    # Update snapshots/rollback must preserve every account, not just the original row.
+    assert len(client.request('GET', accounts_path)[1]['items']) == 2
+    assert client.request('POST', '/api/v1/settings/mail/password', {'id': second_id})[1]['password'] == second_password
+    fixture(site, 'legacy-domain-settings')
+    assert 'example.net' in client.request('GET', '/api/v1/settings')[1]['default_domains']
+    assert client.request('DELETE', accounts_path, {'id': second_id})[0] == 200
+    assert 'example.net' in client.request('GET', '/api/v1/settings')[1]['default_domains']
+    assert client.request('POST', '/api/v1/settings/mail/password', {'id': second_id})[0] == 404
     if os.environ.get('QUICKOTP_TEST_UPDATE_ONLY') == '1':
         return
 
@@ -210,7 +269,7 @@ def exercise(site, base, database):
         statuses = list(executor.map(fail_login, range(5)))
     assert sorted(statuses) == [401, 401, 401, 401, 403]
     assert Client(base).request('POST', '/api/v1/auth/login', {'username': 'admin', 'password': NEW_ADMIN})[0] == 403
-    print('PASS: PHP web installation, private files, authentication/CSRF/session rotation, pagination, encrypted mail settings, exact recipient mail lookup, password-free setup/form retention, removed backup endpoints, header links, expired sessions and concurrent login blocking.')
+    print('PASS: PHP web installation, private files, authentication/CSRF/session rotation, pagination, multiple encrypted IMAP accounts/domain routing, concurrent domain deduplication, atomic domain limits, exact recipient mail lookup, password-free setup/form retention, removed backup endpoints, header links, expired sessions and concurrent login blocking.')
 
 
 def main():

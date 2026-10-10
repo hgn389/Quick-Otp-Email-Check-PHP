@@ -22,6 +22,7 @@ const workspace = {
     clearTimeout(workspace.toastTimer); workspace.toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
   },
   appearance(value) {
+    value = ['dark', 'light', 'system'].includes(value) ? value : 'dark';
     workspace.theme = value;
     document.body.classList.toggle('dark', value === 'dark' || (value === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches));
     try { localStorage.setItem('quickotp-theme', value); } catch (_) {}
@@ -37,12 +38,13 @@ const workspace = {
     } catch (_) { workspace.toast('Không copy được. Hãy nhấn giữ địa chỉ để sao chép.'); }
   }
 };
+try { workspace.appearance(localStorage.getItem('quickotp-theme') || 'dark'); } catch (_) { workspace.appearance('dark'); }
 document.getElementById('menuToggle').addEventListener('click', () => document.getElementById('sidebar').classList.toggle('open'));
 document.querySelector('.profile .dots').addEventListener('click', () => document.getElementById('sidebar').classList.remove('open'));
 document.addEventListener('click', event => { const sidebar = document.getElementById('sidebar'); if (window.innerWidth <= 760 && !sidebar.contains(event.target) && !document.getElementById('menuToggle').contains(event.target)) sidebar.classList.remove('open'); });
 document.getElementById('themeToggle').addEventListener('click', () => workspace.appearance(document.body.classList.contains('dark') ? 'light' : 'dark'));
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (workspace.theme === 'system') workspace.appearance('system'); });
-window.addEventListener('storage', event => { if (event.key === 'quickotp-theme') workspace.appearance(event.newValue || 'system'); });
+window.addEventListener('storage', event => { if (event.key === 'quickotp-theme') workspace.appearance(event.newValue || 'dark'); });
 document.getElementById('logoutBtn').addEventListener('click', async () => { try { await workspace.api('/api/v1/auth/logout', {method:'POST'}); } finally { window.location.replace('/login.html'); } });
 workspace.ready = (async () => {
   try {
